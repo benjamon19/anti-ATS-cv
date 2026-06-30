@@ -6,6 +6,7 @@ Receives CV data as JSON, converts it to RenderCV YAML, generates a PDF
 
 import io
 import os
+import re
 import subprocess
 import tempfile
 from typing import Optional
@@ -14,7 +15,10 @@ import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+# Acepta números con dígitos, espacios y los separadores +, -, (, ) más comunes.
+PHONE_REGEX = re.compile(r"^\+?[\d\s\-\(\)]{7,20}$")
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Pydantic models — mirror the TypeScript CVData shape
@@ -22,12 +26,22 @@ from pydantic import BaseModel, Field
 
 class PersonalData(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     phone: str
     location: str
     website: str = ""
     linkedin: str = ""
     github: str = ""
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        if not PHONE_REGEX.match(v.strip()):
+            raise ValueError(
+                "El teléfono debe contener solo dígitos y los separadores "
+                "+, -, (, ) — ej: +54 9 11 1234-5678"
+            )
+        return v
 
 
 class Experience(BaseModel):
@@ -191,7 +205,7 @@ async def generate_cv(cv: CVRequest):
 
         # 2. Run RenderCV
         result = subprocess.run(
-            ["rendercv", "render", yaml_path, "--output-folder-name", "output"],
+            ["rendercv", "render", yaml_path, "--output-folder", "output"],
             capture_output=True,
             text=True,
             cwd=tmpdir,
