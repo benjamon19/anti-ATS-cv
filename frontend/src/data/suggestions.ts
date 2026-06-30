@@ -1,17 +1,4 @@
-export const LOCATIONS = [
-  'Madrid, España', 'Barcelona, España', 'Valencia, España', 'Sevilla, España',
-  'Bilbao, España', 'Málaga, España', 'Zaragoza, España', 'Murcia, España',
-  'Palma de Mallorca, España', 'Las Palmas, España', 'Alicante, España',
-  'Ciudad de México, México', 'Guadalajara, México', 'Monterrey, México',
-  'Buenos Aires, Argentina', 'Córdoba, Argentina', 'Rosario, Argentina',
-  'Bogotá, Colombia', 'Medellín, Colombia', 'Cali, Colombia', 'Barranquilla, Colombia',
-  'Santiago, Chile', 'Lima, Perú', 'Caracas, Venezuela', 'Quito, Ecuador',
-  'São Paulo, Brasil', 'Rio de Janeiro, Brasil',
-  'Remoto', 'Remoto / España', 'Remoto / LATAM', 'Remoto / Europa',
-]
-
-export const JOB_TITLES = [
-  // Engineering
+export const JOB_TITLES_DEVELOPER = [
   'Software Engineer', 'Senior Software Engineer', 'Staff Engineer', 'Principal Engineer',
   'Frontend Developer', 'Senior Frontend Developer', 'Lead Frontend Developer',
   'Backend Developer', 'Senior Backend Developer', 'Lead Backend Developer',
@@ -24,6 +11,9 @@ export const JOB_TITLES = [
   'Security Engineer', 'Cybersecurity Analyst', 'Penetration Tester',
   'QA Engineer', 'SDET', 'Automation Engineer', 'Test Engineer',
   'Engineering Manager', 'Tech Lead', 'CTO', 'VP of Engineering',
+]
+
+export const JOB_TITLES_OTHER = [
   // Product & Design
   'Product Manager', 'Senior Product Manager', 'Principal Product Manager',
   'UX Designer', 'UI Designer', 'Product Designer', 'UX/UI Designer',
@@ -38,6 +28,8 @@ export const JOB_TITLES = [
   'HR Manager', 'Talent Acquisition Specialist', 'Recruiter',
   'Operations Manager', 'Chief of Staff',
 ]
+
+export const JOB_TITLES = [...JOB_TITLES_DEVELOPER, ...JOB_TITLES_OTHER]
 
 export const DEGREES = [
   'Grado en Ingeniería Informática',

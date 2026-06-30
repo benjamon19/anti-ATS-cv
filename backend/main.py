@@ -1,5 +1,5 @@
 """
-CV Inteligente — FastAPI backend
+Creador de CV — FastAPI backend
 Receives CV data as JSON, converts it to RenderCV YAML, generates a PDF
 (and optionally converts it to PNG), and streams the file back to the client.
 """
@@ -74,7 +74,7 @@ class CVRequest(BaseModel):
 # App setup
 # ────────────────────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="CV Inteligente API", version="1.0.0")
+app = FastAPI(title="Creador de CV API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

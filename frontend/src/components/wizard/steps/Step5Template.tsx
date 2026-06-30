@@ -189,6 +189,16 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
           </div>
         </div>
 
+        {/* ATS / autocompletado note */}
+        <div className="flex items-start gap-3 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-emerald-700 leading-relaxed">
+            <span className="font-semibold">Todas las plantillas son ATS-friendly:</span> se generan con texto
+            real seleccionable en una sola columna (sin imágenes ni tablas), así los sistemas de selección y los
+            formularios de las webs de empleo pueden leer y autocompletar tus datos sin saltarte.
+          </p>
+        </div>
+
         {/* Format picker */}
         <div>
           <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">

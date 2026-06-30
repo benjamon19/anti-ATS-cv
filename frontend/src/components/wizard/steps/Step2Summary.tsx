@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { AlertTriangle, Lightbulb, Zap } from 'lucide-react'
-import type { CVData } from '../../../types/cv'
+import type { CVData, ProfileType } from '../../../types/cv'
 import NavigationButtons from '../NavigationButtons'
 import { detectClichés } from '../../../utils/ats'
 import { ACTION_VERBS_ES, ATS_POWER_KEYWORDS } from '../../../data/suggestions'
@@ -10,12 +10,18 @@ interface Props {
   setData: (d: CVData) => void
   onNext: () => void
   onPrev: () => void
+  profileType: ProfileType
 }
 
 const MAX_CHARS = 600
 const VERB_SAMPLES = ACTION_VERBS_ES.slice(0, 12)
 
-export default function Step2Summary({ data, setData, onNext, onPrev }: Props) {
+const SUMMARY_PLACEHOLDER: Record<ProfileType, string> = {
+  developer: 'Desarrolladora Full-Stack con 5 años de experiencia construyendo aplicaciones web escalables. Especializada en React y Python, con trayectoria en startups de fintech. Lideré la migración de arquitectura monolítica a microservicios, reduciendo los tiempos de respuesta un 40%.',
+  other: 'Especialista en Marketing Digital con 5 años de experiencia liderando campañas de adquisición. Especializada en SEO y growth, con trayectoria en startups B2B. Lideré la estrategia de contenidos que aumentó los leads cualificados un 40%.',
+}
+
+export default function Step2Summary({ data, setData, onNext, onPrev, profileType }: Props) {
   const len = data.summary.length
   const pct = Math.min((len / MAX_CHARS) * 100, 100)
   const barColor = len > MAX_CHARS ? 'bg-red-400' : len > MAX_CHARS * 0.85 ? 'bg-amber-400' : 'bg-zinc-900'
@@ -57,7 +63,7 @@ export default function Step2Summary({ data, setData, onNext, onPrev }: Props) {
             rows={6}
             value={data.summary}
             onChange={e => setData({ ...data, summary: e.target.value })}
-            placeholder="Desarrolladora Full-Stack con 5 años de experiencia construyendo aplicaciones web escalables. Especializada en React y Python, con trayectoria en startups de fintech. Lideré la migración de arquitectura monolítica a microservicios, reduciendo los tiempos de respuesta un 40%."
+            placeholder={SUMMARY_PLACEHOLDER[profileType]}
             className="
               w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-zinc-900
               placeholder-zinc-400 text-sm resize-none

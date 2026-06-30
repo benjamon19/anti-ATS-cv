@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Lightbulb, CheckCircle2, AlertCircle } from 'lucide-react'
-import type { CVData, Experience, Education } from '../../../types/cv'
+import type { CVData, Experience, Education, ProfileType } from '../../../types/cv'
 import NavigationButtons from '../NavigationButtons'
 import Combobox from '../../ui/Combobox'
-import { JOB_TITLES, DEGREES, ACTION_VERBS_ES } from '../../../data/suggestions'
+import { JOB_TITLES_DEVELOPER, JOB_TITLES_OTHER, DEGREES, ACTION_VERBS_ES } from '../../../data/suggestions'
 import { startsWithActionVerb } from '../../../utils/ats'
 
 const genId = () => Math.random().toString(36).slice(2, 10)
@@ -13,6 +13,7 @@ interface Props {
   setData: (d: CVData) => void
   onNext: () => void
   onPrev: () => void
+  profileType: ProfileType
 }
 
 interface FieldProps {
@@ -80,12 +81,13 @@ function VerbPicker({ onSelect }: { onSelect: (v: string) => void }) {
 }
 
 function ExperienceCard({
-  exp, index, onUpdate, onRemove,
+  exp, index, onUpdate, onRemove, jobTitles,
 }: {
   exp: Experience
   index: number
   onUpdate: (id: string, field: keyof Experience, value: Experience[keyof Experience]) => void
   onRemove: (id: string) => void
+  jobTitles: string[]
 }) {
   const updateHighlight = (i: number, val: string) => {
     const h = [...exp.highlights]
@@ -123,7 +125,7 @@ function ExperienceCard({
           label="Cargo / Posición"
           value={exp.position}
           onChange={v => onUpdate(exp.id, 'position', v)}
-          suggestions={JOB_TITLES}
+          suggestions={jobTitles}
           placeholder="Senior Engineer"
         />
         <Field
@@ -304,8 +306,12 @@ function EducationCard({
 
 type Tab = 'experience' | 'education'
 
-export default function Step3Experience({ data, setData, onNext, onPrev }: Props) {
+export default function Step3Experience({ data, setData, onNext, onPrev, profileType }: Props) {
   const [tab, setTab] = useState<Tab>('experience')
+
+  const jobTitles = profileType === 'developer'
+    ? [...JOB_TITLES_DEVELOPER, ...JOB_TITLES_OTHER]
+    : [...JOB_TITLES_OTHER, ...JOB_TITLES_DEVELOPER]
 
   const addExp = () => {
     const e: Experience = {
@@ -389,7 +395,7 @@ export default function Step3Experience({ data, setData, onNext, onPrev }: Props
               </div>
             )}
             {data.experience.map((exp, i) => (
-              <ExperienceCard key={exp.id} exp={exp} index={i} onUpdate={updateExp} onRemove={removeExp} />
+              <ExperienceCard key={exp.id} exp={exp} index={i} onUpdate={updateExp} onRemove={removeExp} jobTitles={jobTitles} />
             ))}
             <button
               onClick={addExp}

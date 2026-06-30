@@ -1,12 +1,13 @@
-import type { CVData } from '../../../types/cv'
-import Combobox from '../../ui/Combobox'
+import type { CVData, ProfileType } from '../../../types/cv'
+import PhoneInput from '../../ui/PhoneInput'
+import LocationInput from '../../ui/LocationInput'
 import NavigationButtons from '../NavigationButtons'
-import { LOCATIONS } from '../../../data/suggestions'
 
 interface Props {
   data: CVData
   setData: (d: CVData) => void
   onNext: () => void
+  profileType: ProfileType
 }
 
 interface FieldProps {
@@ -44,7 +45,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', className =
   )
 }
 
-export default function Step1Personal({ data, setData, onNext }: Props) {
+export default function Step1Personal({ data, setData, onNext, profileType }: Props) {
   const p = data.personal
   const update = (field: keyof typeof p, value: string) =>
     setData({ ...data, personal: { ...p, [field]: value } })
@@ -86,22 +87,19 @@ export default function Step1Personal({ data, setData, onNext }: Props) {
           hint="Usa un email profesional, sin apodos."
           required
         />
-        <Field
+        <PhoneInput
           label="Teléfono"
           value={p.phone}
           onChange={v => update('phone', v)}
-          placeholder="+34 612 345 678"
-          hint="Incluye prefijo internacional."
+          hint="Elige tu país para el prefijo."
           required
         />
 
-        <Combobox
+        <LocationInput
           label="Ubicación"
           value={p.location}
           onChange={v => update('location', v)}
-          suggestions={LOCATIONS}
-          placeholder="Madrid, España"
-          hint='Escribe "Remoto" si trabajas a distancia.'
+          className="sm:col-span-2"
           required
         />
 
@@ -118,14 +116,17 @@ export default function Step1Personal({ data, setData, onNext }: Props) {
           onChange={v => update('linkedin', v)}
           placeholder="linkedin.com/in/anagarcia"
           hint="Muy valorado por reclutadores y ATS."
+          className={profileType === 'developer' ? '' : 'sm:col-span-2'}
         />
-        <Field
-          label="GitHub"
-          value={p.github}
-          onChange={v => update('github', v)}
-          placeholder="github.com/anagarcia"
-          hint="Recomendado para perfiles técnicos."
-        />
+        {profileType === 'developer' && (
+          <Field
+            label="GitHub"
+            value={p.github}
+            onChange={v => update('github', v)}
+            placeholder="github.com/anagarcia"
+            hint="Recomendado para perfiles técnicos."
+          />
+        )}
       </div>
 
       <NavigationButtons onNext={onNext} nextDisabled={!canProceed} />

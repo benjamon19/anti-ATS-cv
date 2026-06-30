@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { CVData, SkillGroup } from '../../../types/cv'
+import type { CVData, SkillGroup, ProfileType } from '../../../types/cv'
 import NavigationButtons from '../NavigationButtons'
 import Combobox from '../../ui/Combobox'
 import { SKILLS_BY_CATEGORY } from '../../../data/suggestions'
@@ -9,13 +9,18 @@ interface Props {
   setData: (d: CVData) => void
   onNext: () => void
   onPrev: () => void
+  profileType: ProfileType
 }
 
 const CATEGORY_NAMES = Object.keys(SKILLS_BY_CATEGORY)
 
-const SUGGESTED_CATEGORIES = [
+const SUGGESTED_CATEGORIES_DEVELOPER = [
   'Lenguajes', 'Frameworks & Librerías', 'Bases de Datos',
   'DevOps & Cloud', 'Herramientas', 'Idiomas', 'Metodologías', 'Soft Skills',
+]
+
+const SUGGESTED_CATEGORIES_OTHER = [
+  'Diseño', 'Marketing', 'Idiomas', 'Metodologías', 'Soft Skills',
 ]
 
 function SkillCard({
@@ -127,7 +132,11 @@ function SkillCard({
   )
 }
 
-export default function Step4Skills({ data, setData, onNext, onPrev }: Props) {
+export default function Step4Skills({ data, setData, onNext, onPrev, profileType }: Props) {
+  const SUGGESTED_CATEGORIES = profileType === 'developer'
+    ? SUGGESTED_CATEGORIES_DEVELOPER
+    : SUGGESTED_CATEGORIES_OTHER
+
   const addGroup = (label = '') =>
     setData({ ...data, skills: [...data.skills, { label, details: '' }] })
 
