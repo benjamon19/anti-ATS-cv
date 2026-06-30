@@ -89,7 +89,14 @@ export default function App() {
       prevUrlRef.current = url
       setDownloadUrl(url)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error al conectar con el servidor'
+      // `fetch` lanza un TypeError cuando la petición no llega al servidor
+      // (caído, en cold-start, sin red, bloqueada por CORS). Cualquier otro
+      // error ya viene de una respuesta HTTP real del backend. En ambos casos
+      // mostramos un mensaje genérico: nunca exponemos la URL interna ni el
+      // texto técnico crudo (p.ej. "Failed to fetch") al usuario final.
+      const msg = e instanceof TypeError
+        ? 'El servicio de generación se encuentra temporalmente en mantenimiento. Por favor, reinténtalo en unos minutos.'
+        : 'Estamos experimentando una alta demanda en nuestros servidores de diseño. Por favor, espera un momento y vuelve a intentarlo.'
       setError(msg)
     } finally {
       setIsGenerating(false)
@@ -111,10 +118,6 @@ export default function App() {
           <div>
             <p className="text-sm font-semibold text-red-700">Error al generar el CV</p>
             <p className="text-xs text-red-600 mt-0.5">{error}</p>
-            <p className="text-xs text-red-500 mt-1">
-              Asegúrate de que el servidor backend está corriendo en{' '}
-              <code className="font-mono">{import.meta.env.VITE_API_URL}</code>
-            </p>
           </div>
           <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
