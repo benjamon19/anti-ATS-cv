@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
 import { COUNTRIES, CITIES_BY_COUNTRY, CHILE_REGIONS, type Country, type ChileRegion } from '../../data/countries'
 import FlagIcon from './FlagIcon'
+import { useDropdownReveal } from '../../hooks/useDropdownReveal'
 
 interface Props {
   label: string
@@ -53,6 +54,9 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
   const countryRef = useRef<HTMLDivElement>(null)
   const regionRef = useRef<HTMLDivElement>(null)
   const cityRef = useRef<HTMLDivElement>(null)
+  const countryPanel = useDropdownReveal(countryOpen)
+  const regionPanel = useDropdownReveal(regionOpen)
+  const cityPanel = useDropdownReveal(cityOpen)
 
   const isChile = country?.iso2 === 'CL'
 
@@ -166,11 +170,11 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
             ) : (
               <span className="text-zinc-400">País</span>
             )}
-            <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${countryOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown ref={countryPanel.chevronRef} className="w-3.5 h-3.5 text-zinc-400" />
           </button>
 
-          {countryOpen && (
-            <div className="absolute z-50 top-full left-0 mt-1.5 w-full sm:w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden">
+          {countryPanel.shouldRender && (
+            <div ref={countryPanel.panelRef} className="absolute z-50 top-full left-0 mt-1.5 w-full sm:w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden">
               <div className="p-2 border-b border-zinc-100">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
@@ -225,11 +229,11 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
               "
             >
               <span className="font-medium truncate sm:max-w-[8rem]">{region ? region.name : 'Región'}</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${regionOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown ref={regionPanel.chevronRef} className="w-3.5 h-3.5 text-zinc-400" />
             </button>
 
-            {regionOpen && (
-              <div className="absolute z-50 top-full left-0 mt-1.5 w-full sm:w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-64 overflow-y-auto">
+            {regionPanel.shouldRender && (
+              <div ref={regionPanel.panelRef} className="absolute z-50 top-full left-0 mt-1.5 w-full sm:w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-64 overflow-y-auto">
                 {CHILE_REGIONS.map(r => (
                   <button
                     key={r.name}
@@ -269,8 +273,8 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
               }
             `}
           />
-          {cityOpen && !remote && filteredCities.length > 0 && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-48 overflow-y-auto">
+          {cityPanel.shouldRender && !remote && filteredCities.length > 0 && (
+            <div ref={cityPanel.panelRef} className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-48 overflow-y-auto">
               {filteredCities.map(c => (
                 <button
                   key={c}

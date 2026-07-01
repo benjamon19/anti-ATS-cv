@@ -4,6 +4,7 @@ import type { CVData, SkillGroup } from '../../../types/cv'
 import type { ServerErrorMap } from '../../../utils/serverErrors'
 import NavigationButtons from '../NavigationButtons'
 import Combobox from '../../ui/Combobox'
+import AnimatedListItem from '../../ui/AnimatedListItem'
 import {
   SKILLS_BY_CATEGORY, SUGGESTED_SKILL_CATEGORIES,
   SKILL_CATEGORY_PLACEHOLDER_EXAMPLES, SKILL_DETAILS_PLACEHOLDER_EXAMPLES, pickRandom,
@@ -220,15 +221,16 @@ export default function Step4Skills({ data, setData, onNext, onPrev, serverError
         )}
 
         {data.skills.map((skill, i) => (
-          <SkillCard
-            key={i}
-            skill={skill}
-            index={i}
-            onUpdate={update}
-            onRemove={remove}
-            errors={skillErrors[i]}
-            forceShowErrors={submitAttempted}
-          />
+          <AnimatedListItem key={i}>
+            <SkillCard
+              skill={skill}
+              index={i}
+              onUpdate={update}
+              onRemove={remove}
+              errors={skillErrors[i]}
+              forceShowErrors={submitAttempted}
+            />
+          </AnimatedListItem>
         ))}
 
         {showNoGroupsError && (

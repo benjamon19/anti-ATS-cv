@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { ChevronDown, Search } from 'lucide-react'
 import { COUNTRIES, type Country } from '../../data/countries'
 import FlagIcon from './FlagIcon'
+import { useDropdownReveal } from '../../hooks/useDropdownReveal'
 
 interface Props {
   label: string
@@ -36,6 +37,7 @@ export default function PhoneInput({ label, value, onChange, onBlur, hint, requi
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const { panelRef, chevronRef, shouldRender } = useDropdownReveal(open)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -98,7 +100,7 @@ export default function PhoneInput({ label, value, onChange, onBlur, hint, requi
         >
           <FlagIcon iso2={country.iso2} />
           <span className="font-medium tabular-nums">+{country.dialCode}</span>
-          <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown ref={chevronRef} className="w-3.5 h-3.5 text-zinc-400" />
         </button>
 
         <input
@@ -115,8 +117,8 @@ export default function PhoneInput({ label, value, onChange, onBlur, hint, requi
           "
         />
 
-        {open && (
-          <div className="absolute z-50 top-full left-0 mt-1.5 w-72 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden">
+        {shouldRender && (
+          <div ref={panelRef} className="absolute z-50 top-full left-0 mt-1.5 w-72 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden">
             <div className="p-2 border-b border-zinc-100">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />

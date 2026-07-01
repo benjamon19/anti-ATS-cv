@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useDropdownReveal } from '../../hooks/useDropdownReveal'
 
 interface Props {
   label: string
@@ -19,6 +20,7 @@ export default function Combobox({
 }: Props) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { panelRef, chevronRef, shouldRender } = useDropdownReveal(open)
 
   const filtered = value.trim().length > 0
     ? suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8)
@@ -76,12 +78,13 @@ export default function Combobox({
           `}
         />
         <ChevronDown
-          className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          ref={chevronRef}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
         />
       </div>
 
-      {open && filtered.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-56 overflow-y-auto">
+      {shouldRender && filtered.length > 0 && (
+        <div ref={panelRef} className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-56 overflow-y-auto">
           {filtered.map(s => (
             <button
               key={s}

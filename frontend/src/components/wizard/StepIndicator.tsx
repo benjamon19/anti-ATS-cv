@@ -1,11 +1,36 @@
+import { useRef } from 'react'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
+
 interface Props {
   currentStep: number
   steps: string[]
 }
 
 export default function StepIndicator({ currentStep, steps }: Props) {
+  const navRef = useRef<HTMLElement>(null)
+  const dotRefs = useRef<(HTMLDivElement | null)[]>([])
+  const beforeFillRefs = useRef<(HTMLDivElement | null)[]>([])
+  const afterFillRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  useGSAP(() => {
+    steps.forEach((_, i) => {
+      const completed = i < currentStep
+      const target = completed ? 1 : 0
+      const before = beforeFillRefs.current[i]
+      const after = afterFillRefs.current[i]
+      if (before) gsap.to(before, { scaleX: target, duration: 0.4, ease: 'power2.out' })
+      if (after) gsap.to(after, { scaleX: target, duration: 0.4, ease: 'power2.out' })
+    })
+
+    const activeDot = dotRefs.current[currentStep]
+    if (activeDot) {
+      gsap.fromTo(activeDot, { scale: 0.7 }, { scale: 1, duration: 0.35, ease: 'back.out(2)' })
+    }
+  }, { scope: navRef, dependencies: [currentStep, steps.length] })
+
   return (
-    <nav aria-label="Progreso" className="flex items-center justify-between">
+    <nav ref={navRef} aria-label="Progreso" className="flex items-center justify-between">
       {steps.map((label, i) => {
         const completed = i < currentStep
         const active = i === currentStep
@@ -14,18 +39,21 @@ export default function StepIndicator({ currentStep, steps }: Props) {
           <div key={label} className="flex-1 flex items-center">
             {/* Connector line before (except first) */}
             {i > 0 && (
-              <div
-                className={`flex-1 h-px transition-colors duration-400 ${
-                  completed ? 'bg-zinc-900 dark:bg-zinc-100' : 'bg-zinc-200 dark:bg-zinc-800'
-                }`}
-              />
+              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 relative overflow-hidden">
+                <div
+                  ref={el => { beforeFillRefs.current[i] = el }}
+                  className="absolute inset-0 bg-zinc-900 dark:bg-zinc-100 origin-left"
+                  style={{ transform: `scaleX(${completed ? 1 : 0})` }}
+                />
+              </div>
             )}
 
             {/* Dot + label */}
             <div className="flex flex-col items-center gap-2 flex-shrink-0">
               <div
+                ref={el => { dotRefs.current[i] = el }}
                 className={`
-                  transition-all duration-300 flex items-center justify-center
+                  transition-colors duration-300 flex items-center justify-center
                   ${active
                     ? 'w-7 h-7 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-bold ring-4 ring-zinc-900/10 dark:ring-white/10'
                     : completed
@@ -55,11 +83,13 @@ export default function StepIndicator({ currentStep, steps }: Props) {
 
             {/* Connector line after (except last) */}
             {i < steps.length - 1 && (
-              <div
-                className={`flex-1 h-px transition-colors duration-400 ${
-                  completed ? 'bg-zinc-900 dark:bg-zinc-100' : 'bg-zinc-200 dark:bg-zinc-800'
-                }`}
-              />
+              <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800 relative overflow-hidden">
+                <div
+                  ref={el => { afterFillRefs.current[i] = el }}
+                  className="absolute inset-0 bg-zinc-900 dark:bg-zinc-100 origin-left"
+                  style={{ transform: `scaleX(${completed ? 1 : 0})` }}
+                />
+              </div>
             )}
           </div>
         )

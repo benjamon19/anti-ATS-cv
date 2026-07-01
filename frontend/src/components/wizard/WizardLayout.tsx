@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
+import { useRef } from 'react'
 import { Sun, Moon } from 'lucide-react'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import StepIndicator from './StepIndicator'
 
 interface Props {
@@ -12,6 +15,11 @@ interface Props {
 
 export default function WizardLayout({ step, steps, children, theme, onToggleTheme }: Props) {
   const progress = Math.round(((step + 1) / steps.length) * 100)
+  const barRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    gsap.to(barRef.current, { width: `${progress}%`, duration: 0.6, ease: 'power2.out' })
+  }, [progress])
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 transition-colors duration-200">
@@ -19,8 +27,9 @@ export default function WizardLayout({ step, steps, children, theme, onToggleThe
       {/* Full-width progress bar — Antigravity style, pinned to very top */}
       <div className="fixed top-0 left-0 right-0 h-[3px] bg-zinc-100 dark:bg-zinc-900 z-50">
         <div
-          className="h-full bg-zinc-900 dark:bg-zinc-100 transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+          ref={barRef}
+          className="h-full bg-zinc-900 dark:bg-zinc-100"
+          style={{ width: 0 }}
         />
       </div>
 

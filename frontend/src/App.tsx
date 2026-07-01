@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { type CVData, type Sector, initialCVData } from './types/cv'
+import { useStepTransition } from './hooks/useStepTransition'
 import SectorIntro from './components/SectorIntro'
 import WizardLayout from './components/wizard/WizardLayout'
 import Step1Personal from './components/wizard/steps/Step1Personal'
@@ -24,25 +24,6 @@ const STEPS = [
   'Plantilla',
 ]
 
-const slideVariants = {
-  enter: (dir: number) => ({
-    x: dir > 0 ? '60%' : '-60%',
-    opacity: 0,
-    scale: 0.97,
-  }),
-  center: { x: 0, opacity: 1, scale: 1 },
-  exit: (dir: number) => ({
-    x: dir > 0 ? '-60%' : '60%',
-    opacity: 0,
-    scale: 0.97,
-  }),
-}
-
-const transition = {
-  duration: 0.38,
-  ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
-}
-
 export default function App() {
   const [sector, setSector] = useState<Sector | null>(null)
   const [step, setStep] = useState(0)
@@ -54,6 +35,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<ServerErrorMap>({})
   const prevUrlRef = useRef<string | null>(null)
+  const { containerRef, displayedStep } = useStepTransition(step, direction)
 
   const clearFieldError = (field: string) => {
     setFieldErrors(prev => {
@@ -228,33 +210,23 @@ export default function App() {
 
       {/* Animated step container */}
       <div className="overflow-hidden">
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={transition}
-          >
-            {step === 0 && <Step1Personal data={data} setData={setData} onNext={goNext} sector={sector} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
-            {step === 1 && <Step2Summary data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
-            {step === 2 && <Step3Experience data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
-            {step === 3 && <Step4Skills data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
-            {step === 4 && (
-              <Step5Template
-                data={data}
-                setData={setData}
-                onPrev={goPrev}
-                onGenerate={handleGenerate}
-                isGenerating={isGenerating}
-                downloadUrl={downloadUrl}
-                onShowPreview={() => setShowPreview(true)}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <div ref={containerRef}>
+          {displayedStep === 0 && <Step1Personal data={data} setData={setData} onNext={goNext} sector={sector} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+          {displayedStep === 1 && <Step2Summary data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+          {displayedStep === 2 && <Step3Experience data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+          {displayedStep === 3 && <Step4Skills data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+          {displayedStep === 4 && (
+            <Step5Template
+              data={data}
+              setData={setData}
+              onPrev={goPrev}
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              downloadUrl={downloadUrl}
+              onShowPreview={() => setShowPreview(true)}
+            />
+          )}
+        </div>
       </div>
 
       {showPreview && downloadUrl && (

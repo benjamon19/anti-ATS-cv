@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Lightbulb, CheckCircle2, AlertCircle, ExternalLink, Award, BookOpen, Heart, Sparkles, Loader2 } from 'lucide-react'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import type { CVData, Experience, Education, Project, Certification, VolunteerEntry, PublicationEntry } from '../../../types/cv'
 import type { ServerErrorMap } from '../../../utils/serverErrors'
 import NavigationButtons from '../NavigationButtons'
 import Combobox from '../../ui/Combobox'
+import AnimatedListItem from '../../ui/AnimatedListItem'
+import { useDropdownReveal } from '../../../hooks/useDropdownReveal'
 import {
   JOB_TITLES, DEGREES, ACTION_VERBS_ES,
   ROLE_PLACEHOLDER_EXAMPLES, HIGHLIGHT_PLACEHOLDER_EXAMPLES,
@@ -64,6 +68,7 @@ function Field({ label, value, onChange, onBlur, placeholder, className = '', di
 
 function VerbPicker({ onSelect }: { onSelect: (v: string) => void }) {
   const [open, setOpen] = useState(false)
+  const { panelRef, shouldRender } = useDropdownReveal(open)
   return (
     <div className="relative">
       <button
@@ -74,8 +79,8 @@ function VerbPicker({ onSelect }: { onSelect: (v: string) => void }) {
         <Lightbulb className="w-3.5 h-3.5" />
         Verbos ATS
       </button>
-      {open && (
-        <div className="absolute z-50 left-0 top-6 w-56 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl p-2 grid grid-cols-2 gap-1">
+      {shouldRender && (
+        <div ref={panelRef} className="absolute z-50 left-0 top-6 w-56 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl p-2 grid grid-cols-2 gap-1">
           {ACTION_VERBS_ES.map(v => (
             <button
               key={v}
@@ -1028,6 +1033,10 @@ const hasAnyError = (errors: object) => Object.values(errors).some(Boolean)
 export default function Step3Experience({ data, setData, onNext, onPrev, serverErrors = {}, onClearServerError }: Props) {
   const [tab, setTab] = useState<Tab>('experience')
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const tabListRef = useRef<HTMLDivElement>(null)
+  const tabButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const tabPillRef = useRef<HTMLDivElement>(null)
+  const pillPositioned = useRef(false)
 
   const jobTitles = JOB_TITLES
 
@@ -1173,6 +1182,21 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
     },
   ]
 
+  useGSAP(() => {
+    const activeEl = tabButtonRefs.current[tab]
+    const containerEl = tabListRef.current
+    if (!activeEl || !containerEl || !tabPillRef.current) return
+    const containerRect = containerEl.getBoundingClientRect()
+    const activeRect = activeEl.getBoundingClientRect()
+    const props = { x: activeRect.left - containerRect.left, width: activeRect.width }
+    if (!pillPositioned.current) {
+      gsap.set(tabPillRef.current, props)
+      pillPositioned.current = true
+    } else {
+      gsap.to(tabPillRef.current, { ...props, duration: 0.3, ease: 'power2.out' })
+    }
+  }, [tab])
+
   return (
     <div>
       <div className="px-8 pt-8 pb-2">
@@ -1191,16 +1215,22 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
 
       {/* Tab switcher — scrollable on mobile */}
       <div className="px-8 mb-5">
-        <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl overflow-x-auto">
+        <div ref={tabListRef} className="relative flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl overflow-x-auto">
+          <div
+            ref={tabPillRef}
+            className="absolute top-1 left-0 h-[calc(100%-8px)] bg-white dark:bg-zinc-700 rounded-lg shadow-sm z-0"
+            style={{ width: 0 }}
+          />
           {tabs.map(t => (
             <button
               key={t.id}
+              ref={el => { tabButtonRefs.current[t.id] = el }}
               onClick={() => setTab(t.id)}
               className={`
-                flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap
-                transition-all duration-200 flex-shrink-0
+                relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap
+                transition-colors duration-200 flex-shrink-0
                 ${tab === t.id
-                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm'
+                  ? 'text-zinc-900 dark:text-zinc-100'
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                 }
               `}
@@ -1232,16 +1262,17 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
               </div>
             )}
             {data.experience.map((exp, i) => (
-              <ExperienceCard
-                key={exp.id}
-                exp={exp}
-                index={i}
-                onUpdate={updateExp}
-                onRemove={removeExp}
-                jobTitles={jobTitles}
-                errors={experienceErrors[i]}
-                forceShowErrors={submitAttempted}
-              />
+              <AnimatedListItem key={exp.id}>
+                <ExperienceCard
+                  exp={exp}
+                  index={i}
+                  onUpdate={updateExp}
+                  onRemove={removeExp}
+                  jobTitles={jobTitles}
+                  errors={experienceErrors[i]}
+                  forceShowErrors={submitAttempted}
+                />
+              </AnimatedListItem>
             ))}
             <button
               onClick={addExp}
@@ -1264,15 +1295,16 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
               </div>
             )}
             {data.education.map((edu, i) => (
-              <EducationCard
-                key={edu.id}
-                edu={edu}
-                index={i}
-                onUpdate={updateEdu}
-                onRemove={removeEdu}
-                errors={educationErrors[i]}
-                forceShowErrors={submitAttempted}
-              />
+              <AnimatedListItem key={edu.id}>
+                <EducationCard
+                  edu={edu}
+                  index={i}
+                  onUpdate={updateEdu}
+                  onRemove={removeEdu}
+                  errors={educationErrors[i]}
+                  forceShowErrors={submitAttempted}
+                />
+              </AnimatedListItem>
             ))}
             <button
               onClick={addEdu}
@@ -1294,13 +1326,14 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
               </div>
             )}
             {(data.projects ?? []).map((project, i) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                index={i}
-                onUpdate={updateProject}
-                onRemove={removeProject}
-              />
+              <AnimatedListItem key={project.id}>
+                <ProjectCard
+                  project={project}
+                  index={i}
+                  onUpdate={updateProject}
+                  onRemove={removeProject}
+                />
+              </AnimatedListItem>
             ))}
             <button
               onClick={addProject}
@@ -1322,13 +1355,14 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
               </div>
             )}
             {(data.certifications ?? []).map((cert, i) => (
-              <CertificationCard
-                key={cert.id}
-                cert={cert}
-                index={i}
-                onUpdate={updateCert}
-                onRemove={removeCert}
-              />
+              <AnimatedListItem key={cert.id}>
+                <CertificationCard
+                  cert={cert}
+                  index={i}
+                  onUpdate={updateCert}
+                  onRemove={removeCert}
+                />
+              </AnimatedListItem>
             ))}
             <button
               onClick={addCert}
@@ -1350,13 +1384,14 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
               </div>
             )}
             {(data.volunteer ?? []).map((vol, i) => (
-              <VolunteerCard
-                key={vol.id}
-                vol={vol}
-                index={i}
-                onUpdate={updateVol}
-                onRemove={removeVol}
-              />
+              <AnimatedListItem key={vol.id}>
+                <VolunteerCard
+                  vol={vol}
+                  index={i}
+                  onUpdate={updateVol}
+                  onRemove={removeVol}
+                />
+              </AnimatedListItem>
             ))}
             <button
               onClick={addVol}
@@ -1378,13 +1413,14 @@ export default function Step3Experience({ data, setData, onNext, onPrev, serverE
               </div>
             )}
             {(data.publications ?? []).map((pub, i) => (
-              <PublicationCard
-                key={pub.id}
-                pub={pub}
-                index={i}
-                onUpdate={updatePub}
-                onRemove={removePub}
-              />
+              <AnimatedListItem key={pub.id}>
+                <PublicationCard
+                  pub={pub}
+                  index={i}
+                  onUpdate={updatePub}
+                  onRemove={removePub}
+                />
+              </AnimatedListItem>
             ))}
             <button
               onClick={addPub}

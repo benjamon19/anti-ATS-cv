@@ -1,5 +1,6 @@
 import { X, Download, Pencil } from 'lucide-react'
 import type { OutputFormat } from '../types/cv'
+import { useMountTransition } from '../hooks/useMountTransition'
 
 interface Props {
   url: string
@@ -9,16 +10,18 @@ interface Props {
 }
 
 export default function CVPreviewModal({ url, format, onDownload, onClose }: Props) {
+  const { backdropRef, panelRef, requestClose } = useMountTransition(onClose)
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div ref={backdropRef} className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/60 backdrop-blur-sm p-4">
+      <div ref={panelRef} className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 flex-shrink-0">
           <div>
             <h3 className="text-lg font-bold text-zinc-900">Vista previa de tu CV</h3>
             <p className="text-xs text-zinc-500">Revisa el resultado antes de descargarlo.</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="p-2 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -43,7 +46,7 @@ export default function CVPreviewModal({ url, format, onDownload, onClose }: Pro
 
         <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 flex-shrink-0">
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="
               w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
               text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 transition-all duration-200

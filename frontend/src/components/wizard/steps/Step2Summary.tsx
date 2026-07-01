@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Lightbulb, Zap, Sparkles, Loader2 } from 'lucide-react'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import type { CVData } from '../../../types/cv'
 import type { ServerErrorMap } from '../../../utils/serverErrors'
 import NavigationButtons from '../NavigationButtons'
@@ -31,6 +33,20 @@ export default function Step2Summary({ data, setData, onNext, onPrev, serverErro
   const pct = Math.min((len / MAX_CHARS) * 100, 100)
   const barColor = len > MAX_CHARS ? 'bg-red-400' : len > MAX_CHARS * 0.85 ? 'bg-amber-400' : 'bg-zinc-900'
   const countColor = len > MAX_CHARS ? 'text-red-500' : len > MAX_CHARS * 0.85 ? 'text-amber-500' : 'text-zinc-400'
+
+  const barRef = useRef<HTMLDivElement>(null)
+  const sparkleRef = useRef<SVGSVGElement>(null)
+
+  useGSAP(() => {
+    gsap.to(barRef.current, { width: `${pct}%`, duration: 0.35, ease: 'power2.out' })
+  }, [pct])
+
+  const spinSparkle = () => {
+    gsap.to(sparkleRef.current, { rotation: 12, duration: 0.2, ease: 'power2.out' })
+  }
+  const resetSparkle = () => {
+    gsap.to(sparkleRef.current, { rotation: 0, duration: 0.2, ease: 'power2.out' })
+  }
 
   const clichés = useMemo(() => detectClichés(data.summary), [data.summary])
 
@@ -101,6 +117,8 @@ export default function Step2Summary({ data, setData, onNext, onPrev, serverErro
           <button
             type="button"
             onClick={handleImproveWithAI}
+            onMouseEnter={spinSparkle}
+            onMouseLeave={resetSparkle}
             disabled={isImproving || data.summary.trim().length < 20}
             className="
               group flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
@@ -113,7 +131,7 @@ export default function Step2Summary({ data, setData, onNext, onPrev, serverErro
           >
             {isImproving
               ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
+              : <Sparkles ref={sparkleRef} className="w-4 h-4" />
             }
             {isImproving ? 'Mejorando…' : 'Mejorar con IA'}
           </button>
@@ -152,7 +170,7 @@ export default function Step2Summary({ data, setData, onNext, onPrev, serverErro
           />
           <div className="mt-2 flex items-center justify-between gap-4">
             <div className="flex-1 h-1 bg-zinc-100 rounded-full overflow-hidden">
-              <div className={`h-full rounded-full transition-all duration-300 ${barColor}`} style={{ width: `${pct}%` }} />
+              <div ref={barRef} className={`h-full rounded-full transition-colors duration-300 ${barColor}`} style={{ width: 0 }} />
             </div>
             <span className={`text-xs font-medium tabular-nums flex-shrink-0 ${countColor}`}>
               {len} / {MAX_CHARS}

@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, XCircle, ShieldCheck, Eye } from 'lucide-react'
+import { useGSAP } from '@gsap/react'
+import { gsap } from 'gsap'
 import type { CVData, CVTheme, OutputFormat } from '../../../types/cv'
 import { calculateATS } from '../../../utils/ats'
 import { getLoadingState } from '../../../utils/loadingMessages'
@@ -53,9 +55,14 @@ const THEMES: {
 
 function ATSPanel({ data }: { data: CVData }) {
   const result = useMemo(() => calculateATS(data), [data])
+  const ringRef = useRef<SVGCircleElement>(null)
 
   const circumference = 2 * Math.PI * 28
   const dashOffset = circumference - (result.score / 100) * circumference
+
+  useGSAP(() => {
+    gsap.to(ringRef.current, { strokeDashoffset: dashOffset, duration: 0.8, ease: 'power2.out' })
+  }, [dashOffset])
 
   const gradeLabel = result.grade === 'A'
     ? 'Excelente' : result.grade === 'B'
@@ -76,13 +83,13 @@ function ATSPanel({ data }: { data: CVData }) {
           <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
             <circle cx="36" cy="36" r="28" fill="none" stroke="#e4e4e7" strokeWidth="6" />
             <circle
+              ref={ringRef}
               cx="36" cy="36" r="28" fill="none"
               stroke={result.color}
               strokeWidth="6"
               strokeLinecap="round"
               strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
-              style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+              strokeDashoffset={circumference}
             />
           </svg>
           <div className="text-center -ml-1">
@@ -118,6 +125,16 @@ function ATSPanel({ data }: { data: CVData }) {
 export default function Step5Template({ data, setData, onPrev, onGenerate, isGenerating, downloadUrl, onShowPreview }: Props) {
   const { theme, format } = data.template
   const [elapsedMs, setElapsedMs] = useState(0)
+  const themeCardRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const progressBarRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    THEMES.forEach(t => {
+      const el = themeCardRefs.current[t.id]
+      if (!el) return
+      gsap.to(el, { scale: t.id === theme ? 1.02 : 1, duration: 0.25, ease: 'back.out(2)' })
+    })
+  }, [theme])
 
   useEffect(() => {
     if (!isGenerating) {
@@ -130,6 +147,10 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
   }, [isGenerating])
 
   const { message: loadingMessage, progress: loadingProgress } = getLoadingState(elapsedMs)
+
+  useGSAP(() => {
+    gsap.to(progressBarRef.current, { width: `${loadingProgress}%`, duration: 0.4, ease: 'power2.out' })
+  }, [loadingProgress])
 
   const setTheme = (t: CVTheme) =>
     setData({ ...data, template: { ...data.template, theme: t } })
@@ -165,12 +186,13 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
               return (
                 <button
                   key={t.id}
+                  ref={el => { themeCardRefs.current[t.id] = el }}
                   onClick={() => setTheme(t.id)}
                   className={`
                     group flex flex-col rounded-2xl overflow-hidden border-2 text-left
-                    transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900
+                    transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900
                     ${selected
-                      ? 'border-zinc-900 shadow-md scale-[1.02]'
+                      ? 'border-zinc-900 shadow-md'
                       : 'border-zinc-200 hover:border-zinc-400 hover:shadow-sm'
                     }
                   `}
@@ -288,8 +310,9 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
             </div>
             <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-zinc-900 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${loadingProgress}%` }}
+                ref={progressBarRef}
+                className="h-full bg-zinc-900 rounded-full"
+                style={{ width: 0 }}
               />
             </div>
           </div>
