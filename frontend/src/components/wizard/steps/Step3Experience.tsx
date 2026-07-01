@@ -478,11 +478,49 @@ function ProjectCard({
   onUpdate: (id: string, field: keyof Project, value: Project[keyof Project]) => void
   onRemove: (id: string) => void
 }) {
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [improvingIdx, setImprovingIdx] = useState<number | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
+
   const updateHighlight = (i: number, val: string) => {
     const h = [...project.highlights]
     h[i] = val
     onUpdate(project.id, 'highlights', h)
   }
+
+  const handleSuggestHighlights = async () => {
+    if (!project.name.trim()) return
+    setIsSuggesting(true)
+    setAiError(null)
+    try {
+      const { suggestHighlights } = await import('../../../utils/gemini')
+      const existing = project.highlights.filter(h => h.trim())
+      const { highlights } = await suggestHighlights(project.name, 'Proyecto Personal', existing)
+      const current = project.highlights.filter(h => h.trim())
+      onUpdate(project.id, 'highlights', [...current, ...highlights])
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Error al sugerir logros. Inténtalo de nuevo.')
+    } finally {
+      setIsSuggesting(false)
+    }
+  }
+
+  const handleImproveHighlight = async (i: number) => {
+    if (!project.highlights[i]?.trim()) return
+    setImprovingIdx(i)
+    setAiError(null)
+    try {
+      const { improveHighlight } = await import('../../../utils/gemini')
+      const { result } = await improveHighlight(project.highlights[i], project.name)
+      updateHighlight(i, result)
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Error al mejorar el logro. Inténtalo de nuevo.')
+    } finally {
+      setImprovingIdx(null)
+    }
+  }
+
+  const canSuggest = project.name.trim().length > 0
 
   return (
     <div className="p-5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 space-y-4">
@@ -531,31 +569,77 @@ function ProjectCard({
           <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wide">
             Descripción y logros
           </label>
+          {canSuggest && (
+            <button
+              type="button"
+              onClick={handleSuggestHighlights}
+              disabled={isSuggesting}
+              className="
+                group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold
+                bg-gradient-to-r from-violet-600 to-indigo-600 text-white
+                hover:from-violet-500 hover:to-indigo-500
+                active:scale-95 transition-all duration-200
+                disabled:opacity-60 disabled:cursor-not-allowed
+              "
+            >
+              {isSuggesting
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Sparkles className="w-3 h-3" />
+              }
+              {isSuggesting ? 'Generando…' : 'Sugerir con IA'}
+            </button>
+          )}
         </div>
+
+        {aiError && (
+          <div className="mb-2 flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {aiError}
+          </div>
+        )}
+
         <div className="space-y-2">
-          {project.highlights.map((h, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="w-4 h-4 flex-shrink-0" />
-              <input
-                value={h}
-                onChange={e => updateHighlight(i, e.target.value)}
-                placeholder="Desarrollé una plataforma web con React y Node.js..."
-                className="
-                  flex-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100
-                  placeholder-zinc-300 dark:placeholder-zinc-600 focus:border-zinc-900 dark:focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 focus:outline-none
-                  transition-all duration-200
-                "
-              />
-              <button
-                onClick={() => onUpdate(project.id, 'highlights', project.highlights.filter((_, idx) => idx !== i))}
-                className="text-zinc-300 hover:text-red-400 transition-colors p-1 flex-shrink-0"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
+          {project.highlights.map((h, i) => {
+            const isImprovingThis = improvingIdx === i
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-4 h-4 flex-shrink-0" />
+                <input
+                  value={h}
+                  onChange={e => updateHighlight(i, e.target.value)}
+                  placeholder="Desarrollé una plataforma web con React y Node.js..."
+                  disabled={isImprovingThis}
+                  className="
+                    flex-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100
+                    placeholder-zinc-300 dark:placeholder-zinc-600 focus:border-zinc-900 dark:focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 focus:outline-none
+                    disabled:opacity-60 transition-all duration-200
+                  "
+                />
+                {h.trim().length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => handleImproveHighlight(i)}
+                    disabled={isImprovingThis || improvingIdx !== null}
+                    title="Mejorar con IA"
+                    className="text-violet-400 hover:text-violet-600 disabled:opacity-40 transition-colors p-1 flex-shrink-0"
+                  >
+                    {isImprovingThis
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Sparkles className="w-3.5 h-3.5" />
+                    }
+                  </button>
+                )}
+                <button
+                  onClick={() => onUpdate(project.id, 'highlights', project.highlights.filter((_, idx) => idx !== i))}
+                  className="text-zinc-300 hover:text-red-400 transition-colors p-1 flex-shrink-0"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )
+          })}
         </div>
         <button
           onClick={() => onUpdate(project.id, 'highlights', [...project.highlights, ''])}
@@ -639,11 +723,49 @@ function VolunteerCard({
   onUpdate: (id: string, field: keyof VolunteerEntry, value: VolunteerEntry[keyof VolunteerEntry]) => void
   onRemove: (id: string) => void
 }) {
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [improvingIdx, setImprovingIdx] = useState<number | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
+
   const updateHighlight = (i: number, val: string) => {
     const h = [...vol.highlights]
     h[i] = val
     onUpdate(vol.id, 'highlights', h)
   }
+
+  const handleSuggestHighlights = async () => {
+    if (!vol.position.trim() && !vol.organization.trim()) return
+    setIsSuggesting(true)
+    setAiError(null)
+    try {
+      const { suggestHighlights } = await import('../../../utils/gemini')
+      const existing = vol.highlights.filter(h => h.trim())
+      const { highlights } = await suggestHighlights(vol.position || 'Voluntario/a', vol.organization || 'Voluntariado', existing)
+      const current = vol.highlights.filter(h => h.trim())
+      onUpdate(vol.id, 'highlights', [...current, ...highlights])
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Error al sugerir logros. Inténtalo de nuevo.')
+    } finally {
+      setIsSuggesting(false)
+    }
+  }
+
+  const handleImproveHighlight = async (i: number) => {
+    if (!vol.highlights[i]?.trim()) return
+    setImprovingIdx(i)
+    setAiError(null)
+    try {
+      const { improveHighlight } = await import('../../../utils/gemini')
+      const { result } = await improveHighlight(vol.highlights[i], vol.position || 'Voluntario/a')
+      updateHighlight(i, result)
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Error al mejorar el logro. Inténtalo de nuevo.')
+    } finally {
+      setImprovingIdx(null)
+    }
+  }
+
+  const canSuggest = vol.position.trim().length > 0 || vol.organization.trim().length > 0
 
   return (
     <div className="p-5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 space-y-4">
@@ -706,32 +828,81 @@ function VolunteerCard({
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
-          Actividades (opcional)
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+            Actividades (opcional)
+          </label>
+          {canSuggest && (
+            <button
+              type="button"
+              onClick={handleSuggestHighlights}
+              disabled={isSuggesting}
+              className="
+                group flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold
+                bg-gradient-to-r from-violet-600 to-indigo-600 text-white
+                hover:from-violet-500 hover:to-indigo-500
+                active:scale-95 transition-all duration-200
+                disabled:opacity-60 disabled:cursor-not-allowed
+              "
+            >
+              {isSuggesting
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Sparkles className="w-3 h-3" />
+              }
+              {isSuggesting ? 'Generando…' : 'Sugerir con IA'}
+            </button>
+          )}
+        </div>
+
+        {aiError && (
+          <div className="mb-2 flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {aiError}
+          </div>
+        )}
+
         <div className="space-y-2">
-          {vol.highlights.map((h, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                value={h}
-                onChange={e => updateHighlight(i, e.target.value)}
-                placeholder="Organicé campañas de recolección para 500+ familias..."
-                className="
-                  flex-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100
-                  placeholder-zinc-300 dark:placeholder-zinc-600 focus:border-zinc-900 dark:focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 focus:outline-none
-                  transition-all duration-200
-                "
-              />
-              <button
-                onClick={() => onUpdate(vol.id, 'highlights', vol.highlights.filter((_, idx) => idx !== i))}
-                className="text-zinc-300 hover:text-red-400 transition-colors p-1 flex-shrink-0"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
+          {vol.highlights.map((h, i) => {
+            const isImprovingThis = improvingIdx === i
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-4 h-4 flex-shrink-0" />
+                <input
+                  value={h}
+                  onChange={e => updateHighlight(i, e.target.value)}
+                  placeholder="Organicé campañas de recolección para 500+ familias..."
+                  disabled={isImprovingThis}
+                  className="
+                    flex-1 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-zinc-100
+                    placeholder-zinc-300 dark:placeholder-zinc-600 focus:border-zinc-900 dark:focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 focus:outline-none
+                    disabled:opacity-60 transition-all duration-200
+                  "
+                />
+                {h.trim().length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => handleImproveHighlight(i)}
+                    disabled={isImprovingThis || improvingIdx !== null}
+                    title="Mejorar con IA"
+                    className="text-violet-400 hover:text-violet-600 disabled:opacity-40 transition-colors p-1 flex-shrink-0"
+                  >
+                    {isImprovingThis
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <Sparkles className="w-3.5 h-3.5" />
+                    }
+                  </button>
+                )}
+                <button
+                  onClick={() => onUpdate(vol.id, 'highlights', vol.highlights.filter((_, idx) => idx !== i))}
+                  className="text-zinc-300 hover:text-red-400 transition-colors p-1 flex-shrink-0"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )
+          })}
         </div>
         <button
           onClick={() => onUpdate(vol.id, 'highlights', [...vol.highlights, ''])}
