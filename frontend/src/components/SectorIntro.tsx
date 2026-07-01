@@ -42,7 +42,7 @@ export default function SectorIntro({ onSelect, theme, onToggleTheme }: Props) {
         </button>
       </div>
 
-      <div className="w-full max-w-2xl text-center">
+      <div className="w-full max-w-2xl text-center pt-12 sm:pt-0 px-12 sm:px-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
           ¿A qué rubro pertenece tu trabajo?
         </h1>
