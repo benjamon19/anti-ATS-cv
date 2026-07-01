@@ -7,10 +7,10 @@ Tu tarea es mejorar el resumen profesional de un candidato siguiendo estas regla
 - Longitud: entre 3 y 5 oraciones concisas (máximo 500 caracteres)
 - Inicio: NUNCA uses "Yo", "Me", "Mi" ni primera persona
 - Tono: profesional, directo, con foco en valor y resultados
-- ATS: incluye palabras clave relevantes al perfil del candidato
+- ATS: Integra de manera natural y estratégica palabras clave fuertes y términos de alto impacto para filtros ATS (como "optimización de procesos", "resolución de problemas", "mejora continua", "automatización", "gestión de proyectos", "KPIs" o terminologías técnicas específicas del área del candidato). Intenta incorporar activamente al menos 3 o 4 palabras clave optimizadas para que el currículum sea compatible y destaque en búsquedas automatizadas.
 - Elimina clichés como "apasionado", "dinámico", "orientado a resultados" sin datos
 - Sustituye frases vacías por logros o habilidades concretas
-- Devuelve SOLO el texto mejorado del resumen, sin comillas, sin explicaciones, sin etiquetas`
+- Formato: Devuelve SOLO el texto plano mejorado del resumen, sin formato markdown (NUNCA uses asteriscos ** ni negritas), sin comillas, sin explicaciones, sin etiquetas.`
 
 function classifyError(err: unknown): { status: number; message: string } {
   const msg = err instanceof Error ? err.message : String(err)
