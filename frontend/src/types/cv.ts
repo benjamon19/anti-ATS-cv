@@ -40,6 +40,41 @@ export interface Education {
   gpa: string
 }
 
+export interface Project {
+  id: string
+  name: string
+  url: string
+  date: string
+  highlights: string[]
+}
+
+export interface Certification {
+  id: string
+  name: string
+  institution: string
+  date: string
+  url: string
+}
+
+export interface VolunteerEntry {
+  id: string
+  organization: string
+  position: string
+  startDate: string
+  endDate: string
+  current: boolean
+  highlights: string[]
+}
+
+export interface PublicationEntry {
+  id: string
+  title: string
+  authors: string
+  date: string
+  journal: string
+  url: string
+}
+
 export interface SkillGroup {
   label: string
   details: string
@@ -58,6 +93,10 @@ export interface CVData {
   summary: string
   experience: Experience[]
   education: Education[]
+  projects: Project[]
+  certifications: Certification[]
+  volunteer: VolunteerEntry[]
+  publications: PublicationEntry[]
   skills: SkillGroup[]
   template: TemplateSelection
 }
@@ -75,6 +114,10 @@ export const initialCVData: CVData = {
   summary: '',
   experience: [],
   education: [],
+  projects: [],
+  certifications: [],
+  volunteer: [],
+  publications: [],
   skills: [],
   template: {
     theme: 'classic',

@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 from datetime import date as Date
+from typing import Annotated, Literal
 
 import phonenumbers
 import yaml
@@ -22,9 +23,10 @@ from pydantic import (
     BaseModel,
     EmailStr,
     Field,
+    HttpUrl,
+    TypeAdapter,
     ValidationInfo,
     field_validator,
-    model_validator,
 )
 from pydantic import ValidationError as PydanticValidationError
 
@@ -70,18 +72,59 @@ def _parse_strict_date(date_str: str) -> Date:
     raise ValueError("Formato de fecha inválido.")
 
 
+def _validate_exact_date_field(v: str, field_label: str) -> str:
+    value = v.strip()
+    if not value:
+        raise ValueError(f"La fecha de {field_label} es obligatoria.")
+    try:
+        _parse_strict_date(value)
+    except ValueError:
+        raise ValueError(f"La fecha de {field_label} debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY.")
+    return value
+
+
+# RenderCV valida "website" con pydantic.HttpUrl — replicamos la misma regla
+# acá para que el error salga como 422 de este campo, no como un 500/422
+# genérico del subprocess de RenderCV.
+_website_adapter = TypeAdapter(HttpUrl)
+
+
+def _validate_website(v: str) -> str:
+    value = v.strip()
+    if not value:
+        return value
+    if not _PROFILE_FIELD_RE.match(value):
+        raise ValueError(
+            "El campo «website» no tiene un formato válido. "
+            "Ingresá una URL sin espacios ni caracteres especiales."
+        )
+    candidate = value if re.match(r"^https?://", value, re.IGNORECASE) else f"https://{value}"
+    try:
+        _website_adapter.validate_python(candidate)
+    except PydanticValidationError:
+        raise ValueError(
+            "El campo «website» no es una URL válida. Ejemplo: https://tuweb.com"
+        )
+    return value
+
+
+# Límites generosos pero finitos: evitan que un payload gigante (accidental o
+# no) genere un YAML/PDF desproporcionado o consuma memoria de más.
+HighlightStr = Annotated[str, Field(max_length=500)]
+
+
 # ────────────────────────────────────────────────────────────────────────────────
 # Pydantic models — mirror the TypeScript CVData shape
 # ────────────────────────────────────────────────────────────────────────────────
 
 class PersonalData(BaseModel):
-    name: str
+    name: str = Field(max_length=200)
     email: EmailStr
-    phone: str
-    location: str
-    website: str = ""
-    linkedin: str = ""
-    github: str = ""
+    phone: str = Field(max_length=40)
+    location: str = Field(max_length=200)
+    website: str = Field(default="", max_length=300)
+    linkedin: str = Field(default="", max_length=300)
+    github: str = Field(default="", max_length=300)
 
     @field_validator("name", "location")
     @classmethod
@@ -102,7 +145,12 @@ class PersonalData(BaseModel):
             )
         return v
 
-    @field_validator("website", "linkedin", "github")
+    @field_validator("website")
+    @classmethod
+    def validate_website(cls, v: str) -> str:
+        return _validate_website(v)
+
+    @field_validator("linkedin", "github")
     @classmethod
     def validate_profile_field(cls, v: str, info: ValidationInfo) -> str:
         return _validate_profile_field(v, info)
@@ -110,97 +158,88 @@ class PersonalData(BaseModel):
 
 class Experience(BaseModel):
     id: str
-    company: str
-    position: str
-    startDate: str
-    endDate: str
+    company: str = Field(max_length=200)
+    position: str = Field(max_length=200)
+    startDate: str = Field(max_length=20)
     current: bool = False
-    location: str
-    highlights: list[str] = Field(default_factory=list)
+    endDate: str = Field(max_length=20)
+    location: str = Field(max_length=200)
+    highlights: list[HighlightStr] = Field(default_factory=list, max_length=30)
 
     @field_validator("company", "position", "location")
     @classmethod
     def validate_required_text(cls, v: str, info: ValidationInfo) -> str:
         return _require_non_empty(v, info)
 
-    @model_validator(mode="after")
-    def validate_dates(self) -> "Experience":
-        start = self.startDate.strip()
-        if not start:
-            raise ValueError("La fecha de inicio de la experiencia es obligatoria.")
+    @field_validator("startDate")
+    @classmethod
+    def validate_start_date(cls, v: str) -> str:
+        return _validate_exact_date_field(v, "inicio")
+
+    @field_validator("endDate")
+    @classmethod
+    def validate_end_date(cls, v: str, info: ValidationInfo) -> str:
+        value = v.strip()
+        if info.data.get("current"):
+            return value
+        if not value:
+            raise ValueError('La fecha de fin es obligatoria (o marcá "posición actual").')
         try:
-            start_obj = _parse_strict_date(start)
+            end_obj = _parse_strict_date(value)
         except ValueError:
-            raise ValueError(
-                "La fecha de inicio de la experiencia debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY."
-            )
+            raise ValueError("La fecha de fin debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY.")
 
-        if self.current:
-            return self
-
-        end = self.endDate.strip()
-        if not end:
-            raise ValueError(
-                'La fecha de fin de la experiencia es obligatoria (o marcá "posición actual").'
-            )
-        try:
-            end_obj = _parse_strict_date(end)
-        except ValueError:
-            raise ValueError(
-                "La fecha de fin de la experiencia debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY."
-            )
-
-        if start_obj > end_obj:
-            raise ValueError(
-                "La fecha de inicio de la experiencia no puede ser posterior a la fecha de fin."
-            )
-
-        return self
+        start_raw = info.data.get("startDate")
+        if start_raw:
+            try:
+                start_obj = _parse_strict_date(start_raw.strip())
+            except ValueError:
+                return value  # el propio startDate ya reporta su error
+            if start_obj > end_obj:
+                raise ValueError("La fecha de fin no puede ser anterior a la fecha de inicio.")
+        return value
 
 
 class Education(BaseModel):
     id: str
-    institution: str
-    degree: str
-    area: str
-    startDate: str
-    endDate: str
-    gpa: str = ""
+    institution: str = Field(max_length=200)
+    degree: str = Field(max_length=200)
+    area: str = Field(max_length=200)
+    startDate: str = Field(max_length=20)
+    endDate: str = Field(max_length=20)
+    gpa: str = Field(default="", max_length=30)
 
     @field_validator("institution", "degree", "area")
     @classmethod
     def validate_required_text(cls, v: str, info: ValidationInfo) -> str:
         return _require_non_empty(v, info)
 
-    @model_validator(mode="after")
-    def validate_dates(self) -> "Education":
-        start = self.startDate.strip()
-        if not start:
-            raise ValueError("La fecha de inicio de la educación es obligatoria.")
+    @field_validator("startDate")
+    @classmethod
+    def validate_start_date(cls, v: str) -> str:
+        return _validate_exact_date_field(v, "inicio")
+
+    @field_validator("endDate")
+    @classmethod
+    def validate_end_date(cls, v: str, info: ValidationInfo) -> str:
+        value = v.strip()
+        if not value:
+            return value  # estudios en curso: opcional
+
         try:
-            start_obj = _parse_strict_date(start)
+            end_obj = _parse_strict_date(value)
         except ValueError:
-            raise ValueError(
-                "La fecha de inicio de la educación debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY."
-            )
+            raise ValueError("La fecha de fin debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY.")
 
-        # endDate es opcional: estudios en curso.
-        end = self.endDate.strip()
-        if not end:
-            return self
-        try:
-            end_obj = _parse_strict_date(end)
-        except ValueError:
-            raise ValueError(
-                "La fecha de fin de la educación debe tener el formato YYYY-MM-DD, YYYY-MM o YYYY."
-            )
-
-        if start_obj > end_obj:
-            raise ValueError(
-                "La fecha de inicio de la educación no puede ser posterior a la fecha de fin."
-            )
-
-        return self
+        start_raw = info.data.get("startDate")
+        if start_raw:
+            try:
+                start_obj = _parse_strict_date(start_raw.strip())
+            except ValueError:
+                return value  # el propio startDate ya reporta su error
+            if start_obj > end_obj:
+                raise ValueError("La fecha de fin no puede ser anterior a la fecha de inicio.")
+        return value
 
 
 class SkillGroup(BaseModel):
@@ -210,6 +249,61 @@ class SkillGroup(BaseModel):
     @field_validator("label", "details")
     @classmethod
     def validate_required_text(cls, v: str, info: ValidationInfo) -> str:
+        return _require_non_empty(v, info)
+
+
+class Project(BaseModel):
+    id: str
+    name: str
+    url: str = ""
+    date: str = ""
+    highlights: list[HighlightStr] = Field(default_factory=list)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str, info: ValidationInfo) -> str:
+        return _require_non_empty(v, info)
+
+
+class Certification(BaseModel):
+    id: str
+    name: str
+    institution: str = ""
+    date: str = ""
+    url: str = ""
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str, info: ValidationInfo) -> str:
+        return _require_non_empty(v, info)
+
+
+class VolunteerEntry(BaseModel):
+    id: str
+    organization: str
+    position: str = ""
+    startDate: str = ""
+    endDate: str = ""
+    current: bool = False
+    highlights: list[HighlightStr] = Field(default_factory=list)
+
+    @field_validator("organization")
+    @classmethod
+    def validate_organization(cls, v: str, info: ValidationInfo) -> str:
+        return _require_non_empty(v, info)
+
+
+class PublicationEntry(BaseModel):
+    id: str
+    title: str
+    authors: str = ""
+    date: str = ""
+    journal: str = ""
+    url: str = ""
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str, info: ValidationInfo) -> str:
         return _require_non_empty(v, info)
 
 
@@ -223,6 +317,10 @@ class CVRequest(BaseModel):
     summary: str
     experience: list[Experience]
     education: list[Education]
+    projects: list[Project] = Field(default_factory=list)
+    certifications: list[Certification] = Field(default_factory=list)
+    volunteer: list[VolunteerEntry] = Field(default_factory=list)
+    publications: list[PublicationEntry] = Field(default_factory=list)
     skills: list[SkillGroup]
     template: TemplateSelection
 
@@ -245,13 +343,49 @@ app.add_middleware(
 
 
 # ────────────────────────────────────────────────────────────────────────────────
-# Manejo global de errores — nunca devolver un traceback al cliente. Cualquier
-# problema con los datos de entrada es un 422 con mensaje claro; el 500 queda
-# reservado para errores reales de servidor (ver /generate-cv).
+# Seguridad básica de transporte: headers estándar y límite de tamaño de
+# request. No hay autenticación (es una herramienta interna para un grupo
+# chico), pero esto evita los descuidos más baratos de explotar.
 # ────────────────────────────────────────────────────────────────────────────────
 
-def _format_validation_errors(errors: list[dict]) -> str:
-    messages = []
+MAX_REQUEST_BODY_BYTES = 300_000  # un CV en JSON no debería superar esto
+
+
+@app.middleware("http")
+async def enforce_request_size_limit(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > MAX_REQUEST_BODY_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "La solicitud es demasiado grande."},
+                )
+        except ValueError:
+            pass
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# Manejo global de errores — nunca devolver un traceback al cliente. Cualquier
+# problema con los datos de entrada es un 422 con mensaje claro (con el campo
+# exacto identificado, para que el frontend lo marque en el input
+# correspondiente); el 500 queda reservado para errores reales de servidor
+# (ver /generate-cv).
+# ────────────────────────────────────────────────────────────────────────────────
+
+def _format_validation_errors(errors: list[dict]) -> tuple[str, list[dict[str, str]]]:
+    messages: list[str] = []
+    field_errors: list[dict[str, str]] = []
     for error in errors:
         loc = [str(part) for part in error.get("loc", ()) if part != "body"]
         field = ".".join(loc)
@@ -259,19 +393,24 @@ def _format_validation_errors(errors: list[dict]) -> str:
         if msg.startswith("Value error, "):
             msg = msg[len("Value error, "):]
         messages.append(f"{field}: {msg}" if field else msg)
-    return " | ".join(messages) if messages else "Los datos enviados no son válidos."
+        if field:
+            field_errors.append({"field": field, "message": msg})
+    detail = " | ".join(messages) if messages else "Los datos enviados no son válidos."
+    return detail, field_errors
 
 
 @app.exception_handler(RequestValidationError)
 async def handle_request_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     logger.warning("Datos de entrada inválidos en %s: %s", request.url.path, exc.errors())
-    return JSONResponse(status_code=422, content={"detail": _format_validation_errors(exc.errors())})
+    detail, field_errors = _format_validation_errors(exc.errors())
+    return JSONResponse(status_code=422, content={"detail": detail, "errors": field_errors})
 
 
 @app.exception_handler(PydanticValidationError)
 async def handle_pydantic_validation_error(request: Request, exc: PydanticValidationError) -> JSONResponse:
     logger.warning("Error de validación en %s: %s", request.url.path, exc.errors())
-    return JSONResponse(status_code=422, content={"detail": _format_validation_errors(exc.errors())})
+    detail, field_errors = _format_validation_errors(exc.errors())
+    return JSONResponse(status_code=422, content={"detail": detail, "errors": field_errors})
 
 
 @app.exception_handler(Exception)
@@ -352,6 +491,84 @@ def build_rendercv_yaml(cv: CVRequest) -> dict:
             edu_list.append(entry)
         sections["education"] = edu_list
 
+    if cv.projects:
+        project_list = []
+        for p in cv.projects:
+            if not p.name.strip():
+                continue
+            entry: dict = {"name": p.name.strip()}
+            if p.url.strip():
+                entry["url"] = p.url.strip() if p.url.startswith("http") else f"https://{p.url.strip()}"
+            if p.date.strip():
+                entry["date"] = p.date.strip()
+            highlights = [h for h in p.highlights if h.strip()]
+            if highlights:
+                entry["highlights"] = highlights
+            project_list.append(entry)
+        if project_list:
+            sections["projects"] = project_list
+
+    if cv.certifications:
+        cert_highlights = []
+        for c in cv.certifications:
+            if not c.name.strip():
+                continue
+            line = c.name.strip()
+            if c.institution.strip():
+                line += f" — {c.institution.strip()}"
+            if c.date.strip():
+                line += f" ({c.date.strip()})"
+            if c.url.strip():
+                url = c.url.strip() if c.url.startswith("http") else f"https://{c.url.strip()}"
+                line += f" | {url}"
+            cert_highlights.append(line)
+        if cert_highlights:
+            sections["certifications"] = [{"label": "Certificaciones", "details": " · ".join(cert_highlights)}]
+
+    if cv.volunteer:
+        vol_list = []
+        for v in cv.volunteer:
+            if not v.organization.strip():
+                continue
+            entry = {
+                "company": v.organization.strip(),
+                "position": v.position.strip() if v.position.strip() else "Voluntario/a",
+                "start_date": v.startDate.strip() if v.startDate.strip() else "2020",
+                "end_date": "present" if v.current else (v.endDate.strip() if v.endDate.strip() else "present"),
+            }
+            highlights = [h for h in v.highlights if h.strip()]
+            if highlights:
+                entry["highlights"] = highlights
+            vol_list.append(entry)
+        if vol_list:
+            sections["extracurricular_activities"] = vol_list
+
+    if cv.publications:
+        pub_list = []
+        for p in cv.publications:
+            if not p.title.strip():
+                continue
+            entry: dict = {"title": p.title.strip()}
+            authors = p.authors.strip()
+            journal = p.journal.strip()
+            date = p.date.strip()
+            url = p.url.strip()
+            line_parts = []
+            if authors:
+                line_parts.append(authors)
+            if journal:
+                line_parts.append(journal)
+            if date:
+                line_parts.append(date)
+            if url:
+                link = url if url.startswith("http") else f"https://{url}"
+                line_parts.append(link)
+            if line_parts:
+                entry["highlights"] = [" | ".join(line_parts)]
+            pub_list.append(entry)
+        if pub_list:
+            sections["publications"] = pub_list
+
     if cv.skills:
         skill_list = [
             {"label": s.label, "details": s.details}
@@ -415,12 +632,20 @@ async def generate_cv(cv: CVRequest):
             yaml.dump(cv_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         # 2. Run RenderCV
-        result = subprocess.run(
-            ["rendercv", "render", yaml_path, "--output-folder", "output"],
-            capture_output=True,
-            text=True,
-            cwd=tmpdir,
-        )
+        try:
+            result = subprocess.run(
+                ["rendercv", "render", yaml_path, "--output-folder", "output"],
+                capture_output=True,
+                text=True,
+                cwd=tmpdir,
+                timeout=45,
+            )
+        except subprocess.TimeoutExpired:
+            logger.error("RenderCV superó el tiempo límite de generación (45s).")
+            raise HTTPException(
+                status_code=504,
+                detail="La generación del CV está tardando demasiado. Intentá nuevamente.",
+            )
 
         if result.returncode != 0:
             combined_output = f"{result.stdout}\n{result.stderr}".strip()

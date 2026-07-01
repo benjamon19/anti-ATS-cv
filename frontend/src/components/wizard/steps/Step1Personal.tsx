@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { CVData, Sector } from '../../../types/cv'
+import type { ServerErrorMap } from '../../../utils/serverErrors'
 import PhoneInput from '../../ui/PhoneInput'
 import LocationInput from '../../ui/LocationInput'
 import NavigationButtons from '../NavigationButtons'
@@ -10,6 +11,8 @@ interface Props {
   setData: (d: CVData) => void
   onNext: () => void
   sector: Sector
+  serverErrors?: ServerErrorMap
+  onClearServerError?: (field: string) => void
 }
 
 interface FieldProps {
@@ -61,14 +64,17 @@ function Field({ label, value, onChange, onBlur, placeholder, type = 'text', cla
 
 type FieldName = 'name' | 'email' | 'phone' | 'location' | 'website' | 'linkedin' | 'github'
 
-export default function Step1Personal({ data, setData, onNext, sector }: Props) {
+export default function Step1Personal({ data, setData, onNext, sector, serverErrors = {}, onClearServerError }: Props) {
   const p = data.personal
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const showGithub = sector === 'tecnologia'
 
-  const update = (field: keyof typeof p, value: string) =>
+  const update = (field: keyof typeof p, value: string) => {
+    // Clear any server-side error for this field when the user edits it
+    onClearServerError?.(`personal.${field}`)
     setData({ ...data, personal: { ...p, [field]: value } })
+  }
 
   const markTouched = (field: FieldName) => setTouched(t => ({ ...t, [field]: true }))
 
@@ -82,7 +88,12 @@ export default function Step1Personal({ data, setData, onNext, sector }: Props) 
     github: showGithub ? validateUrl(p.github, 'El enlace de GitHub') : null,
   }), [p, showGithub])
 
-  const shownError = (field: FieldName) => (touched[field] || submitAttempted) ? errors[field] : null
+  // Local validation takes precedence; server errors show immediately (no touch needed)
+  const shownError = (field: FieldName): string | null => {
+    const local = (touched[field] || submitAttempted) ? errors[field] : null
+    if (local) return local
+    return serverErrors[`personal.${field}`] ?? null
+  }
 
   const handleNext = () => {
     if (Object.values(errors).some(Boolean)) {

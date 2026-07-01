@@ -1,25 +1,31 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Lightbulb, Zap } from 'lucide-react'
+import { AlertTriangle, Lightbulb, Zap, Sparkles, Loader2 } from 'lucide-react'
 import type { CVData } from '../../../types/cv'
+import type { ServerErrorMap } from '../../../utils/serverErrors'
 import NavigationButtons from '../NavigationButtons'
 import { detectClichés } from '../../../utils/ats'
 import { ACTION_VERBS_ES, ATS_POWER_KEYWORDS, SUMMARY_PLACEHOLDER_EXAMPLES, pickRandom } from '../../../data/suggestions'
 import { validateSummary } from '../../../utils/validation'
+import { improveSummary } from '../../../utils/gemini'
 
 interface Props {
   data: CVData
   setData: (d: CVData) => void
   onNext: () => void
   onPrev: () => void
+  serverErrors?: ServerErrorMap
+  onClearServerError?: (field: string) => void
 }
 
 const MAX_CHARS = 600
 const VERB_SAMPLES = ACTION_VERBS_ES.slice(0, 12)
 
-export default function Step2Summary({ data, setData, onNext, onPrev }: Props) {
+export default function Step2Summary({ data, setData, onNext, onPrev, serverErrors = {}, onClearServerError }: Props) {
   const [touched, setTouched] = useState(false)
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [placeholder] = useState(() => pickRandom(SUMMARY_PLACEHOLDER_EXAMPLES))
+  const [isImproving, setIsImproving] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
 
   const len = data.summary.length
   const pct = Math.min((len / MAX_CHARS) * 100, 100)
@@ -34,12 +40,35 @@ export default function Step2Summary({ data, setData, onNext, onPrev }: Props) {
   )
 
   const error = useMemo(() => validateSummary(data.summary), [data.summary])
-  const shownError = (touched || submitAttempted) ? error : null
+  const localShown = (touched || submitAttempted) ? error : null
+  const serverShown = serverErrors['summary'] ?? null
+  const shownError = localShown ?? serverShown
+
+  const handleSummaryChange = (value: string) => {
+    onClearServerError?.('summary')
+    setAiError(null)
+    setData({ ...data, summary: value })
+  }
+
+  const handleImproveWithAI = async () => {
+    if (data.summary.trim().length < 20) return
+    setIsImproving(true)
+    setAiError(null)
+    try {
+      const { result } = await improveSummary(data.summary)
+      handleSummaryChange(result)
+      setTouched(true)
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Error al mejorar con IA. Inténtalo de nuevo.')
+    } finally {
+      setIsImproving(false)
+    }
+  }
 
   const appendVerb = (verb: string) => {
     const trimmed = data.summary.trimEnd()
     const sep = trimmed.length > 0 && !trimmed.endsWith('.') ? '. ' : trimmed.length > 0 ? ' ' : ''
-    setData({ ...data, summary: trimmed + sep + verb + ' ' })
+    handleSummaryChange(trimmed + sep + verb + ' ')
   }
 
   const handleNext = () => {
@@ -67,12 +96,46 @@ export default function Step2Summary({ data, setData, onNext, onPrev }: Props) {
       </div>
 
       <div className="px-8 pb-2 space-y-4">
+        {/* AI Improve button */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleImproveWithAI}
+            disabled={isImproving || data.summary.trim().length < 20}
+            className="
+              group flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+              bg-gradient-to-r from-violet-600 to-indigo-600
+              text-white shadow-sm shadow-violet-200
+              hover:from-violet-500 hover:to-indigo-500
+              active:scale-95 transition-all duration-200
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+            "
+          >
+            {isImproving
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
+            }
+            {isImproving ? 'Mejorando…' : '\u2728 Mejorar con IA'}
+          </button>
+          {data.summary.trim().length < 20 && (
+            <span className="text-xs text-zinc-400">Escribe un borrador para mejorar con IA</span>
+          )}
+        </div>
+
+        {/* AI error */}
+        {aiError && (
+          <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            {aiError}
+          </div>
+        )}
+
         {/* Textarea */}
         <div>
           <textarea
             rows={6}
             value={data.summary}
-            onChange={e => setData({ ...data, summary: e.target.value })}
+            onChange={e => handleSummaryChange(e.target.value)}
             onBlur={() => setTouched(true)}
             placeholder={placeholder}
             aria-invalid={!!shownError}

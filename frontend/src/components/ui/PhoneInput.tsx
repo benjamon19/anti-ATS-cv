@@ -77,16 +77,24 @@ export default function PhoneInput({ label, value, onChange, onBlur, hint, requi
         {required && <span className="font-bold text-zinc-900 ml-0.5">*</span>}
       </label>
 
-      <div className="relative flex" ref={containerRef}>
+      <div
+        className={`
+          relative flex rounded-xl border bg-white dark:bg-zinc-900 transition-all duration-200
+          ${error
+            ? 'border-red-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10'
+            : 'border-zinc-200 dark:border-zinc-800 focus-within:border-zinc-900 dark:focus-within:border-zinc-100 focus-within:ring-2 focus-within:ring-zinc-900/10 dark:focus-within:ring-white/10'
+          }
+        `}
+        ref={containerRef}
+      >
         <button
           type="button"
           onClick={() => setOpen(o => !o)}
-          className={`
-            flex items-center gap-1.5 px-3 rounded-l-xl border border-r-0
-            bg-zinc-50 hover:bg-zinc-100 text-sm text-zinc-700 flex-shrink-0
+          className="
+            flex items-center gap-1.5 px-3 rounded-l-xl border-r border-zinc-200 dark:border-zinc-800
+            bg-zinc-50 dark:bg-zinc-800/30 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-300 flex-shrink-0
             transition-colors duration-150
-            ${error ? 'border-red-300' : 'border-zinc-200'}
-          `}
+          "
         >
           <FlagIcon iso2={country.iso2} />
           <span className="font-medium tabular-nums">+{country.dialCode}</span>
@@ -101,16 +109,10 @@ export default function PhoneInput({ label, value, onChange, onBlur, hint, requi
           onBlur={onBlur}
           placeholder="9 1234 5678"
           aria-invalid={!!error}
-          className={`
-            flex-1 min-w-0 px-4 py-2.5 rounded-r-xl border bg-white text-zinc-900
-            placeholder-zinc-400 text-sm
-            focus:outline-none focus:ring-2
-            transition-all duration-200
-            ${error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10'
-              : 'border-zinc-200 focus:border-zinc-900 focus:ring-zinc-900/10'
-            }
-          `}
+          className="
+            flex-1 min-w-0 px-4 py-2.5 rounded-r-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100
+            placeholder-zinc-400 dark:placeholder-zinc-500 text-sm border-0 focus:outline-none focus:ring-0
+          "
         />
 
         {open && (

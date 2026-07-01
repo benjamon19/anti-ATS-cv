@@ -9,6 +9,7 @@ import Step3Experience from './components/wizard/steps/Step3Experience'
 import Step4Skills from './components/wizard/steps/Step4Skills'
 import Step5Template from './components/wizard/steps/Step5Template'
 import CVPreviewModal from './components/CVPreviewModal'
+import { type ServerFieldError, type ServerErrorMap, buildServerErrorMap, earliestStepForFields } from './utils/serverErrors'
 
 // Render (plan free) "duerme" el backend tras inactividad: la primera
 // request tras el cold-start puede tardar ~50s o más. Damos margen extra
@@ -51,7 +52,17 @@ export default function App() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<ServerErrorMap>({})
   const prevUrlRef = useRef<string | null>(null)
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors(prev => {
+      if (!(field in prev)) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
@@ -103,6 +114,7 @@ export default function App() {
   const handleGenerate = async () => {
     setIsGenerating(true)
     setError(null)
+    setFieldErrors({})
     clearDownload()
 
     const controller = new AbortController()
@@ -117,8 +129,33 @@ export default function App() {
       })
 
       if (!response.ok) {
-        const detail = await response.json().catch(() => ({ detail: 'Error desconocido' }))
-        throw new Error(detail.detail ?? `HTTP ${response.status}`)
+        const body = await response.json().catch(() => ({ detail: 'Error desconocido' }))
+        const serverErrors: ServerFieldError[] = Array.isArray(body.errors) ? body.errors : []
+
+        if (serverErrors.length > 0) {
+          // El backend nos dice exactamente qué campo está mal: lo marcamos
+          // ahí mismo (como la validación local) en vez de un banner genérico
+          // que obligue a abrir las devtools para entender qué pasó.
+          setFieldErrors(buildServerErrorMap(serverErrors))
+          const targetStep = earliestStepForFields(serverErrors.map(e => e.field))
+          setDirection(targetStep < step ? -1 : 1)
+          setStep(targetStep)
+          setError('Hay datos inválidos — revisá los campos marcados en rojo.')
+          return
+        }
+
+        // Sin detalle de campo (p.ej. RenderCV igual rechazó los datos, o el
+        // payload es demasiado grande): el backend ya garantiza un mensaje
+        // corto y claro en español, lo mostramos tal cual.
+        if (response.status >= 400 && response.status < 500) {
+          setError(body.detail || 'Los datos ingresados no son válidos.')
+          return
+        }
+
+        // 5xx: error real de servidor. El detalle técnico queda solo en los
+        // logs del backend, acá mostramos un mensaje genérico.
+        setError('Ocurrió un error en el servidor. Por favor, intentá nuevamente en unos instantes.')
+        return
       }
 
       // Reutilizamos este mismo blob para la vista previa: no hace falta un
@@ -132,10 +169,8 @@ export default function App() {
       // `fetch` lanza un AbortError cuando superamos GENERATE_TIMEOUT_MS (p.ej.
       // el servidor tardó demasiado en despertar) y un TypeError cuando la
       // petición no llega al servidor (caído, en cold-start, sin red,
-      // bloqueada por CORS). Cualquier otro error ya viene de una respuesta
-      // HTTP real del backend. En todos los casos mostramos un mensaje
-      // genérico: nunca exponemos la URL interna ni el texto técnico crudo
-      // (p.ej. "Failed to fetch") al usuario final.
+      // bloqueada por CORS). En estos casos no hay respuesta HTTP real, así
+      // que sí mostramos un mensaje genérico (nunca "Failed to fetch" crudo).
       let msg: string
       if (e instanceof DOMException && e.name === 'AbortError') {
         msg = 'El servidor está tardando más de lo esperado en responder (posiblemente saliendo de reposo). Por favor, inténtalo de nuevo en unos instantes.'
@@ -203,10 +238,10 @@ export default function App() {
             exit="exit"
             transition={transition}
           >
-            {step === 0 && <Step1Personal data={data} setData={setData} onNext={goNext} sector={sector} />}
-            {step === 1 && <Step2Summary data={data} setData={setData} onNext={goNext} onPrev={goPrev} />}
-            {step === 2 && <Step3Experience data={data} setData={setData} onNext={goNext} onPrev={goPrev} />}
-            {step === 3 && <Step4Skills data={data} setData={setData} onNext={goNext} onPrev={goPrev} />}
+            {step === 0 && <Step1Personal data={data} setData={setData} onNext={goNext} sector={sector} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+            {step === 1 && <Step2Summary data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+            {step === 2 && <Step3Experience data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
+            {step === 3 && <Step4Skills data={data} setData={setData} onNext={goNext} onPrev={goPrev} serverErrors={fieldErrors} onClearServerError={clearFieldError} />}
             {step === 4 && (
               <Step5Template
                 data={data}

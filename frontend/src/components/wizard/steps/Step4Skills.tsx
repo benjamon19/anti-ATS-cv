@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertCircle } from 'lucide-react'
 import type { CVData, SkillGroup } from '../../../types/cv'
+import type { ServerErrorMap } from '../../../utils/serverErrors'
 import NavigationButtons from '../NavigationButtons'
 import Combobox from '../../ui/Combobox'
 import {
@@ -14,6 +15,8 @@ interface Props {
   setData: (d: CVData) => void
   onNext: () => void
   onPrev: () => void
+  serverErrors?: ServerErrorMap
+  onClearServerError?: (field: string) => void
 }
 
 const CATEGORY_NAMES = Object.keys(SKILLS_BY_CATEGORY)
@@ -158,7 +161,7 @@ function SkillCard({
   )
 }
 
-export default function Step4Skills({ data, setData, onNext, onPrev }: Props) {
+export default function Step4Skills({ data, setData, onNext, onPrev, serverErrors = {}, onClearServerError }: Props) {
   const [submitAttempted, setSubmitAttempted] = useState(false)
 
   const SUGGESTED_CATEGORIES = SUGGESTED_SKILL_CATEGORIES
@@ -167,6 +170,7 @@ export default function Step4Skills({ data, setData, onNext, onPrev }: Props) {
     setData({ ...data, skills: [...data.skills, { label, details: '' }] })
 
   const update = (i: number, field: keyof SkillGroup, value: string) => {
+    onClearServerError?.(`skills.${i}.${field}`)
     const skills = data.skills.map((s, idx) => idx === i ? { ...s, [field]: value } : s)
     setData({ ...data, skills })
   }
