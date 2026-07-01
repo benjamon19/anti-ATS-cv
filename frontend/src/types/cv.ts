@@ -1,3 +1,14 @@
+export type Sector =
+  | 'tecnologia'
+  | 'salud'
+  | 'construccion'
+  | 'mineria'
+  | 'gastronomia'
+  | 'retail'
+  | 'administracion'
+  | 'educacion'
+  | 'otro'
+
 export interface PersonalData {
   name: string
   email: string

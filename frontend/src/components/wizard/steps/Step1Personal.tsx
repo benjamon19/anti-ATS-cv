@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { CVData } from '../../../types/cv'
+import type { CVData, Sector } from '../../../types/cv'
 import PhoneInput from '../../ui/PhoneInput'
 import LocationInput from '../../ui/LocationInput'
 import NavigationButtons from '../NavigationButtons'
@@ -9,6 +9,7 @@ interface Props {
   data: CVData
   setData: (d: CVData) => void
   onNext: () => void
+  sector: Sector
 }
 
 interface FieldProps {
@@ -60,10 +61,11 @@ function Field({ label, value, onChange, onBlur, placeholder, type = 'text', cla
 
 type FieldName = 'name' | 'email' | 'phone' | 'location' | 'website' | 'linkedin' | 'github'
 
-export default function Step1Personal({ data, setData, onNext }: Props) {
+export default function Step1Personal({ data, setData, onNext, sector }: Props) {
   const p = data.personal
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const showGithub = sector === 'tecnologia'
 
   const update = (field: keyof typeof p, value: string) =>
     setData({ ...data, personal: { ...p, [field]: value } })
@@ -77,8 +79,8 @@ export default function Step1Personal({ data, setData, onNext }: Props) {
     location: validateRequired(p.location, 'La ubicación'),
     website: validateUrl(p.website, 'El sitio web'),
     linkedin: validateUrl(p.linkedin, 'El enlace de LinkedIn'),
-    github: validateUrl(p.github, 'El enlace de GitHub'),
-  }), [p])
+    github: showGithub ? validateUrl(p.github, 'El enlace de GitHub') : null,
+  }), [p, showGithub])
 
   const shownError = (field: FieldName) => (touched[field] || submitAttempted) ? errors[field] : null
 
@@ -166,16 +168,19 @@ export default function Step1Personal({ data, setData, onNext }: Props) {
           error={shownError('linkedin')}
           placeholder="linkedin.com/in/tunombre"
           hint="Muy valorado por reclutadores y ATS."
+          className={showGithub ? '' : 'sm:col-span-2'}
         />
-        <Field
-          label="GitHub"
-          value={p.github}
-          onChange={v => update('github', v)}
-          onBlur={() => markTouched('github')}
-          error={shownError('github')}
-          placeholder="github.com/tunombre"
-          hint="Opcional — si tienes un perfil o portafolio online."
-        />
+        {showGithub && (
+          <Field
+            label="GitHub"
+            value={p.github}
+            onChange={v => update('github', v)}
+            onBlur={() => markTouched('github')}
+            error={shownError('github')}
+            placeholder="github.com/tunombre"
+            hint="Opcional — si tienes un perfil o portafolio online."
+          />
+        )}
       </div>
 
       <NavigationButtons onNext={handleNext} />

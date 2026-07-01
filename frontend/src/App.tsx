@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { type CVData, initialCVData } from './types/cv'
+import { type CVData, type Sector, initialCVData } from './types/cv'
+import SectorIntro from './components/SectorIntro'
 import WizardLayout from './components/wizard/WizardLayout'
 import Step1Personal from './components/wizard/steps/Step1Personal'
 import Step2Summary from './components/wizard/steps/Step2Summary'
@@ -42,6 +43,7 @@ const transition = {
 }
 
 export default function App() {
+  const [sector, setSector] = useState<Sector | null>(null)
   const [step, setStep] = useState(0)
   const [direction, setDirection] = useState(1)
   const [data, setData] = useState<CVData>(initialCVData)
@@ -134,6 +136,10 @@ export default function App() {
     document.body.removeChild(a)
   }
 
+  if (!sector) {
+    return <SectorIntro onSelect={setSector} />
+  }
+
   return (
     <WizardLayout step={step} steps={STEPS}>
       {/* Error banner */}
@@ -172,7 +178,7 @@ export default function App() {
             exit="exit"
             transition={transition}
           >
-            {step === 0 && <Step1Personal data={data} setData={setData} onNext={goNext} />}
+            {step === 0 && <Step1Personal data={data} setData={setData} onNext={goNext} sector={sector} />}
             {step === 1 && <Step2Summary data={data} setData={setData} onNext={goNext} onPrev={goPrev} />}
             {step === 2 && <Step3Experience data={data} setData={setData} onNext={goNext} onPrev={goPrev} />}
             {step === 3 && <Step4Skills data={data} setData={setData} onNext={goNext} onPrev={goPrev} />}
