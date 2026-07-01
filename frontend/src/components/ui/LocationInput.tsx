@@ -144,25 +144,25 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
         {required && <span className="font-bold text-zinc-900 ml-0.5">*</span>}
       </label>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         {/* Country dropdown */}
-        <div className="relative flex-shrink-0" ref={countryRef}>
+        <div className="relative w-full sm:w-auto sm:flex-shrink-0" ref={countryRef}>
           <button
             type="button"
             onClick={() => setCountryOpen(o => !o)}
             disabled={remote}
             className="
-              flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-zinc-200
+              w-full sm:w-auto flex items-center justify-between sm:justify-start gap-1.5 px-3 py-2.5 rounded-xl border border-zinc-200
               bg-zinc-50 hover:bg-zinc-100 text-sm text-zinc-700
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-colors duration-150
             "
           >
             {country ? (
-              <>
+              <span className="flex items-center gap-1.5 truncate">
                 <FlagIcon iso2={country.iso2} />
-                <span className="font-medium max-w-[7rem] truncate">{country.name}</span>
-              </>
+                <span className="font-medium truncate sm:max-w-[7rem]">{country.name}</span>
+              </span>
             ) : (
               <span className="text-zinc-400">País</span>
             )}
@@ -170,7 +170,7 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
           </button>
 
           {countryOpen && (
-            <div className="absolute z-50 top-full left-0 mt-1.5 w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden">
+            <div className="absolute z-50 top-full left-0 mt-1.5 w-full sm:w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden">
               <div className="p-2 border-b border-zinc-100">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
@@ -212,24 +212,24 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
 
         {/* Region dropdown (solo Chile) */}
         {isChile && (
-          <div className="relative flex-shrink-0" ref={regionRef}>
+          <div className="relative w-full sm:w-auto sm:flex-shrink-0" ref={regionRef}>
             <button
               type="button"
               onClick={() => setRegionOpen(o => !o)}
               disabled={remote}
               className="
-                flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-zinc-200
+                w-full sm:w-auto flex items-center justify-between sm:justify-start gap-1.5 px-3 py-2.5 rounded-xl border border-zinc-200
                 bg-zinc-50 hover:bg-zinc-100 text-sm text-zinc-700
                 disabled:opacity-40 disabled:cursor-not-allowed
                 transition-colors duration-150
               "
             >
-              <span className="font-medium max-w-[8rem] truncate">{region ? region.name : 'Región'}</span>
+              <span className="font-medium truncate sm:max-w-[8rem]">{region ? region.name : 'Región'}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${regionOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {regionOpen && (
-              <div className="absolute z-50 top-full left-0 mt-1.5 w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-64 overflow-y-auto">
+              <div className="absolute z-50 top-full left-0 mt-1.5 w-full sm:w-64 bg-white border border-zinc-200 rounded-xl shadow-lg shadow-zinc-100/80 overflow-hidden max-h-64 overflow-y-auto">
                 {CHILE_REGIONS.map(r => (
                   <button
                     key={r.name}
@@ -249,7 +249,7 @@ export default function LocationInput({ label, value, onChange, onBlur, hint, re
         )}
 
         {/* City input */}
-        <div className="relative flex-1" ref={cityRef}>
+        <div className="relative w-full sm:flex-1" ref={cityRef}>
           <input
             value={city}
             onChange={e => handleCityChange(e.target.value)}

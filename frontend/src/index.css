@@ -1,9 +1,17 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  html.dark {
+    background-color: #09090b;
+    color: #f4f4f5;
+    color-scheme: dark;
   }
 
   * {
@@ -15,5 +23,83 @@
   label[for],
   select {
     cursor: pointer;
+  }
+}
+
+/* Global Dark Mode Overrides */
+html.dark {
+  /* Layout and Cards */
+  .bg-white {
+    background-color: #18181b !important;
+  }
+  .bg-zinc-50 {
+    background-color: #27272a !important;
+  }
+  .bg-zinc-100 {
+    background-color: #27272a !important;
+  }
+
+  /* Borders */
+  .border-zinc-100,
+  .border-zinc-200,
+  .border-zinc-300 {
+    border-color: #27272a !important;
+  }
+
+  /* Text Colors */
+  .text-zinc-900 {
+    color: #f4f4f5 !important;
+  }
+  .text-zinc-800 {
+    color: #e4e4e7 !important;
+  }
+  .text-zinc-700 {
+    color: #d4d4d8 !important;
+  }
+  .text-zinc-600 {
+    color: #a1a1aa !important;
+  }
+  .text-zinc-500 {
+    color: #71717a !important;
+  }
+  .text-zinc-400 {
+    color: #52525b !important;
+  }
+
+  /* Forms and Controls */
+  input,
+  textarea,
+  select {
+    background-color: #18181b !important;
+    color: #f4f4f5 !important;
+    border-color: #27272a !important;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #52525b !important;
+  }
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #f4f4f5 !important;
+    --tw-ring-color: rgba(244, 244, 245, 0.1) !important;
+  }
+
+  /* Dropdown panels */
+  .absolute.bg-white {
+    background-color: #18181b !important;
+    border-color: #27272a !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+  }
+  .hover\:bg-zinc-50:hover {
+    background-color: #27272a !important;
+  }
+
+  /* Button hover states and highlights */
+  .bg-zinc-100.hover\:bg-zinc-200:hover {
+    background-color: #3f3f46 !important;
+  }
+  .text-zinc-600.bg-zinc-100 {
+    color: #d4d4d8 !important;
   }
 }

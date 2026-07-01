@@ -64,13 +64,15 @@ function ATSPanel({ data }: { data: CVData }) {
 
   return (
     <div className="rounded-xl border border-zinc-200 overflow-hidden">
-      <div className="flex items-center gap-4 px-5 py-4 bg-zinc-50 border-b border-zinc-200">
-        <ShieldCheck className="w-5 h-5 text-zinc-600 flex-shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-bold text-zinc-800">Puntuación ATS</p>
-          <p className="text-xs text-zinc-500">Compatibilidad con sistemas de rastreo de candidatos</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 bg-zinc-50 border-b border-zinc-200">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-zinc-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-zinc-800">Puntuación ATS</p>
+            <p className="text-xs text-zinc-500">Compatibilidad con sistemas de rastreo de candidatos</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-shrink-0 justify-end">
           <svg width="72" height="72" viewBox="0 0 72 72" className="-rotate-90">
             <circle cx="36" cy="36" r="28" fill="none" stroke="#e4e4e7" strokeWidth="6" />
             <circle
@@ -85,7 +87,7 @@ function ATSPanel({ data }: { data: CVData }) {
           </svg>
           <div className="text-center -ml-1">
             <p className="text-2xl font-extrabold" style={{ color: result.color }}>{result.score}</p>
-            <p className="text-xs font-bold" style={{ color: result.color }}>{gradeLabel}</p>
+            <p className="text-xs font-bold whitespace-nowrap" style={{ color: result.color }}>{gradeLabel}</p>
           </div>
         </div>
       </div>
@@ -219,7 +221,7 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
           <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
             Formato de entrega
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {([
               {
                 id: 'pdf' as OutputFormat,
@@ -295,41 +297,44 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
       </div>
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between px-8 py-5 border-t border-zinc-100">
-        <button
-          onClick={onPrev}
-          className="
-            inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
-            text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 transition-all duration-200
-          "
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-          Atrás
-        </button>
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 px-6 sm:px-8 py-4 sm:py-5 border-t border-zinc-100">
+        {/* Left actions on desktop / Bottom actions on mobile */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={onPrev}
+            className="
+              flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
+              text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 transition-all duration-200
+            "
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            Atrás
+          </button>
 
-        <div className="flex items-center gap-3">
           {downloadUrl && !isGenerating && (
             <button
               onClick={onShowPreview}
               className="
-                inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
-                text-zinc-600 bg-zinc-100 hover:bg-zinc-200
-                active:scale-95 transition-all duration-200
+                flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
+                text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 transition-all duration-200
               "
             >
               <Eye className="w-4 h-4" />
-              Ver vista previa
+              <span>Vista previa</span>
             </button>
           )}
+        </div>
 
+        {/* Right actions on desktop / Top actions on mobile */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           {downloadUrl && (
             <a
               href={downloadUrl}
               download={`cv.${format}`}
               className="
-                inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
+                w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
                 text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100
                 active:scale-95 transition-all duration-200
               "
@@ -345,7 +350,7 @@ export default function Step5Template({ data, setData, onPrev, onGenerate, isGen
             onClick={onGenerate}
             disabled={isGenerating}
             className="
-              inline-flex items-center gap-2 px-7 py-2.5 rounded-full text-sm font-semibold
+              w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-2.5 rounded-full text-sm font-semibold
               text-white bg-zinc-900 hover:bg-zinc-700 active:scale-95
               disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
               transition-all duration-200

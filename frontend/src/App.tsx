@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { type CVData, type Sector, initialCVData } from './types/cv'
 import SectorIntro from './components/SectorIntro'
@@ -52,6 +52,27 @@ export default function App() {
   const [showPreview, setShowPreview] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const prevUrlRef = useRef<string | null>(null)
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme')
+      if (saved === 'light' || saved === 'dark') return saved
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
+    }
+    return 'light'
+  })
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }, [theme])
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light')
 
   const goNext = () => {
     setDirection(1)
@@ -137,11 +158,11 @@ export default function App() {
   }
 
   if (!sector) {
-    return <SectorIntro onSelect={setSector} />
+    return <SectorIntro onSelect={setSector} theme={theme} onToggleTheme={toggleTheme} />
   }
 
   return (
-    <WizardLayout step={step} steps={STEPS}>
+    <WizardLayout step={step} steps={STEPS} theme={theme} onToggleTheme={toggleTheme}>
       {/* Error banner */}
       {error && (
         <div className="mx-8 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">

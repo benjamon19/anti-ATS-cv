@@ -41,11 +41,11 @@ export default function CVPreviewModal({ url, format, onDownload, onClose }: Pro
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 flex-shrink-0">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 flex-shrink-0">
           <button
             onClick={onClose}
             className="
-              inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
+              w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
               text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 transition-all duration-200
             "
           >
@@ -55,7 +55,7 @@ export default function CVPreviewModal({ url, format, onDownload, onClose }: Pro
           <button
             onClick={onDownload}
             className="
-              inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold
+              w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold
               text-white bg-zinc-900 hover:bg-zinc-700 active:scale-95 transition-all duration-200
             "
           >

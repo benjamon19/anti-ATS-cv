@@ -16,7 +16,7 @@ export default function StepIndicator({ currentStep, steps }: Props) {
             {i > 0 && (
               <div
                 className={`flex-1 h-px transition-colors duration-400 ${
-                  completed ? 'bg-zinc-900' : 'bg-zinc-200'
+                  completed ? 'bg-zinc-900 dark:bg-zinc-100' : 'bg-zinc-200 dark:bg-zinc-800'
                 }`}
               />
             )}
@@ -27,10 +27,10 @@ export default function StepIndicator({ currentStep, steps }: Props) {
                 className={`
                   transition-all duration-300 flex items-center justify-center
                   ${active
-                    ? 'w-7 h-7 rounded-full bg-zinc-900 text-white text-xs font-bold ring-4 ring-zinc-900/10'
+                    ? 'w-7 h-7 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-bold ring-4 ring-zinc-900/10 dark:ring-white/10'
                     : completed
-                    ? 'w-5 h-5 rounded-full bg-zinc-900 text-white'
-                    : 'w-5 h-5 rounded-full bg-zinc-200'
+                    ? 'w-5 h-5 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950'
+                    : 'w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500'
                   }
                 `}
               >
@@ -46,7 +46,7 @@ export default function StepIndicator({ currentStep, steps }: Props) {
               <span
                 className={`
                   text-[10px] font-medium text-center leading-tight max-w-[68px] transition-colors duration-300
-                  ${active ? 'text-zinc-900 font-semibold' : completed ? 'text-zinc-500' : 'text-zinc-300'}
+                  ${active ? 'text-zinc-900 dark:text-zinc-100 font-semibold' : completed ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-300 dark:text-zinc-700'}
                 `}
               >
                 {label}
@@ -57,7 +57,7 @@ export default function StepIndicator({ currentStep, steps }: Props) {
             {i < steps.length - 1 && (
               <div
                 className={`flex-1 h-px transition-colors duration-400 ${
-                  completed ? 'bg-zinc-900' : 'bg-zinc-200'
+                  completed ? 'bg-zinc-900 dark:bg-zinc-100' : 'bg-zinc-200 dark:bg-zinc-800'
                 }`}
               />
             )}

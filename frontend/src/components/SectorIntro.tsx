@@ -1,11 +1,14 @@
 import {
   Code2, Stethoscope, HardHat, Pickaxe, ChefHat,
   ShoppingBag, Briefcase, GraduationCap, Sparkles,
+  Sun, Moon
 } from 'lucide-react'
 import type { Sector } from '../types/cv'
 
 interface Props {
   onSelect: (sector: Sector) => void
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
 }
 
 const SECTORS: { id: Sector; label: string; icon: typeof Code2 }[] = [
@@ -20,14 +23,30 @@ const SECTORS: { id: Sector; label: string; icon: typeof Code2 }[] = [
   { id: 'otro', label: 'Otro rubro', icon: Sparkles },
 ]
 
-export default function SectorIntro({ onSelect }: Props) {
+export default function SectorIntro({ onSelect, theme, onToggleTheme }: Props) {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center px-4 py-10 relative transition-colors duration-200">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <button
+          onClick={onToggleTheme}
+          type="button"
+          className="
+            p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800
+            bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400
+            hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100
+            transition-colors duration-150
+          "
+          aria-label="Cambiar tema"
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+      </div>
+
       <div className="w-full max-w-2xl text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
           ¿A qué rubro pertenece tu trabajo?
         </h1>
-        <p className="text-zinc-500 text-sm mb-8">
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8">
           Así adaptamos el formulario a tu caso — por ejemplo, no te pediremos datos que no apliquen a tu rubro.
         </p>
 
@@ -39,12 +58,17 @@ export default function SectorIntro({ onSelect }: Props) {
                 key={s.id}
                 type="button"
                 onClick={() => onSelect(s.id)}
-                className="group p-5 rounded-2xl border border-zinc-200 bg-white hover:border-zinc-900 hover:shadow-md transition-all duration-200 flex flex-col items-center gap-3"
+                className="
+                  group p-5 rounded-2xl border border-zinc-200 dark:border-zinc-850
+                  bg-white dark:bg-zinc-900 hover:border-zinc-900 dark:hover:border-zinc-100
+                  hover:shadow-md dark:hover:shadow-zinc-950/20 transition-all duration-200
+                  flex flex-col items-center gap-3
+                "
               >
-                <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center group-hover:bg-zinc-900 transition-colors duration-200">
-                  <Icon className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors duration-200" />
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 transition-colors duration-200">
+                  <Icon className="w-5 h-5 text-zinc-600 dark:text-zinc-400 group-hover:text-white dark:group-hover:text-zinc-900 transition-colors duration-200" />
                 </div>
-                <p className="text-sm font-semibold text-zinc-900">{s.label}</p>
+                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{s.label}</p>
               </button>
             )
           })}
