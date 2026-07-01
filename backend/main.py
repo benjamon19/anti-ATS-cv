@@ -34,9 +34,10 @@ logger = logging.getLogger("cv_backend")
 # Shared validation helpers
 # ────────────────────────────────────────────────────────────────────────────────
 
-# Nombre de usuario o URL de perfil "razonable": sin espacios ni caracteres de
-# control, empieza y termina con un caracter alfanumérico.
-_PROFILE_FIELD_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._:/-]*[A-Za-z0-9])?$")
+# Nombre de usuario o URL de perfil "razonable": empieza con un caracter
+# alfanumérico y no tiene espacios ni caracteres de control. Permite los
+# caracteres típicos de una URL (incluyendo "/" final y query strings).
+_PROFILE_FIELD_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]*$")
 
 
 def _require_non_empty(v: str, info: ValidationInfo) -> str:
